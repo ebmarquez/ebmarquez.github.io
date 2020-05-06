@@ -16,7 +16,7 @@
 lang: en-US
 title: Network, Code, Automation
 email: ebmarquez@example.com
-description: "Network, Code, Automation"
+description: "Just another blog that will discuss code, networking and some automation"
 baseurl: # the optional subpath of your site, e.g. "/blog"
 url: https://ebmarquez.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 author:
