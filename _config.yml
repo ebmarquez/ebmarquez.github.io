@@ -16,7 +16,7 @@
 lang: en-US
 title: ebmarquez
 email:
-description:
+description: Network, Code, Automation
 baseurl: # the optional subpath of your site, e.g. "/blog"
 url: ebmarquez.bithub.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 author:
