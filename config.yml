@@ -1,10 +1,10 @@
 baseurl: "/"
-title: "Eric Marquez"
+title: "ebmarquez"
 page_load_js: "assets/js/main.js"
 params:
-  description: A minimal blogging theme for Stackbit
+  description: Test blog on github
   header:
-    title: Fjord
+    title: Eric Marquez
     tagline: Minimal and clean blog theme
     logo_img: "images/logo.png"
     background_img: "images/header-bg.jpg"
