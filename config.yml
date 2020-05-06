@@ -1,0 +1,65 @@
+baseurl: "/"
+title: "Stackbit Fjord Theme"
+page_load_js: "assets/js/main.js"
+params:
+  description: A minimal blogging theme for Stackbit
+  header:
+    title: Fjord
+    tagline: Minimal and clean blog theme
+    logo_img: "images/logo.png"
+    background_img: "images/header-bg.jpg"
+    has_nav: true
+    nav_links:
+      - label: Home
+        url: /
+        type: link
+      - label: About
+        url: /about/
+        type: link
+      - label: Style Guide
+        url: /style-guide/
+        type: link
+      - label: Contact
+        url: /contact/
+        type: link
+    has_social: true
+    social_links:
+      - label: Twitter
+        url: https://twitter.com/
+        type: icon
+        icon_class: fa-twitter
+        new_window: true
+      - label: Instagram
+        url: https://www.instagram.com/
+        type: icon
+        icon_class: fa-instagram
+        new_window: true
+      - label: GitHub
+        url: https://github.com/
+        type: icon
+        icon_class: fa-github
+        new_window: true
+      - label: LinkedIn
+        url: https://www.linkedin.com/
+        type: icon
+        icon_class: fa-linkedin
+        new_window: true
+      - label: DEV
+        url: https://dev.to/
+        type: icon
+        icon_class: fa-dev
+        new_window: true
+  footer:
+    content: "&copy; All rights reserved."
+    links:
+      - label: Made with Stackbit.
+        url: https://www.stackbit.com
+        type: link
+        new_window: true
+  palette: yellow
+sass:
+  input_file: sass/main.scss.njk
+  output_file: assets/css/main.css
+  indentWidth: 4
+  outputStyle: nested
+  precision: 10

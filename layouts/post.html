@@ -1,0 +1,62 @@
+{% extends "body.html" %}
+
+{% block content %}
+
+  {% if page.params.hide_header == true %}
+    {% include "header_alt.html" %}
+  {% else %}
+    {% set include_dict = {'site': site, 'page': page, 'image': page.params.content_img_path} %}
+    {% include "header.html" %}
+  {% endif %}
+
+  <div id="content" class="site-content">
+    <main id="main" class="site-main inner">
+
+      <article class="post post-full">
+        <header class="post-header">
+          <h1 class="post-title">{{ page.params.title }}</h1>
+          <div class="post-meta">
+            Published on <time class="published"
+              datetime="{{page.date | date_format("%Y-%m-%d %H:%M") }}">{{page.date | date_format("%B %d, %Y") }}</time>
+          </div>
+        </header><!-- .post-header -->
+        {% if page.params.subtitle %}
+        <div class="post-subtitle">
+          {{ page.params.subtitle | safe }}
+        </div><!-- .post-subtitle -->
+        {% endif %}
+        <div class="post-content">
+          {{ page.content | safe }}
+        </div><!-- .post-content -->
+      </article><!-- .post -->
+
+      <!-- Next/previous post navigation TBD -->
+      <!--
+      <nav class="post-navigation">
+        <h2 class="post-nav-title">Read Next</h2>
+        <article class="post">
+          <header class="post-header">
+            <h3 class="post-title"><a href="#" rel="bookmark">Previous Post Title</a></h3>
+            <div class="post-meta">
+              Published on <time class="published" datetime="">Previous post date</time>
+            </div>
+          </header>
+        </article>
+        <article class="post">
+          <header class="post-header">
+            <h3 class="post-title"><a href="#" rel="bookmark">Next Post Title</a></h3>
+            <div class="post-meta">
+              Published on <time class="published" datetime="">Next post date</time>
+            </div>
+          </header>
+        </article>
+      </nav>
+      -->
+
+    </main><!-- .site-main -->
+
+    {% include "footer.html" %}
+
+  </div><!-- .site-content -->
+
+{% endblock %}

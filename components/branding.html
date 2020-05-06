@@ -1,0 +1,16 @@
+<div class="site-branding">
+  {% if site.params.header.logo_img %}
+  <p class="site-logo">
+    <a href='{{ "/" | relative_url }}'><img src="{{ site.params.header.logo_img | relative_url }}"
+        alt="{{ site.params.header.title }} Logo" /></a>
+  </p>
+  {% endif %}
+  {% if page.layout == "home" %}
+  <h1 class="site-title"><a href='{{ "/" | relative_url }}'>{{ site.params.header.title }}</a></h1>
+  {% else %}
+  <p class="site-title"><a href='{{ "/" | relative_url }}'>{{ site.params.header.title }}</a></p>
+  {% endif %}
+  {% if site.params.header.tagline %}
+  <p class="site-description">{{ site.params.header.tagline }}</p>
+  {% endif %}
+</div><!-- .site-branding -->

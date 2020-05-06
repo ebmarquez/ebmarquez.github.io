@@ -1,0 +1,31 @@
+{% extends "body.html" %}
+
+{% block content %}
+
+  {% set include_dict = {'site': site, 'page': page, 'image': page.params.img_path} %}
+  {% include "header.html" %}
+
+  <div id="content" class="site-content">
+    <main id="main" class="site-main inner">
+
+      <article class="post page post-full">
+        <header class="post-header">
+          <h1 class="post-title">{{ page.params.title }}</h1>
+        </header><!-- .post-header -->
+        {% if page.params.subtitle %}
+        <div class="post-subtitle">
+          {{ page.params.subtitle | safe }}
+        </div><!-- .post-subtitle -->
+        {% endif %}
+        <div class="post-content">
+          {{ page.content }}
+        </div><!-- .post-content -->
+      </article><!-- .post -->
+
+    </main><!-- .site-main -->
+
+    {% include "footer.html" %}
+
+  </div><!-- .site-content -->
+
+{% endblock %}
