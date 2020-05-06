@@ -1,5 +1,5 @@
 baseurl: "/"
-title: "test ebmarquez"
+title: "test Underscore ebmarquez"
 page_load_js: "assets/js/main.js"
 params:
   description: Test blog on github
