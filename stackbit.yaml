@@ -8,7 +8,7 @@ dataDir: data
 pagesDir: content
 pageLayoutKey: layout
 metadata:
-  title: Fjord
+  title: Ebmarquez
   description: A minimal blogging theme
   author: Stackbit
   authorURL: 'https://www.stackbit.com'
