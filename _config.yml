@@ -1,13 +1,13 @@
-baseurl: "public"
+baseurl: "/"
 title: "test ebmarquez"
-page_load_js: "public/assets/js/main.js"
+page_load_js: "assets/js/main.js"
 params:
   description: Test blog on github
   header:
     title: Eric Marquez
     tagline: Minimal and clean blog theme
-    logo_img: "public/images/logo.png"
-    background_img: "public/images/header-bg.jpg"
+    logo_img: "images/logo.png"
+    background_img: "images/header-bg.jpg"
     has_nav: true
     nav_links:
       - label: Home
