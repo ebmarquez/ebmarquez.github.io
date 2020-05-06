@@ -1,4 +1,4 @@
-baseurl: "/public/"
+baseurl: "/public"
 title: "test Underscore ebmarquez"
 page_load_js: "assets/js/main.js"
 params:
