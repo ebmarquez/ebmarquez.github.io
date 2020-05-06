@@ -1,5 +1,5 @@
 baseurl: "/"
-title: "Stackbit Fjord Theme"
+title: "Eric Marquez"
 page_load_js: "assets/js/main.js"
 params:
   description: A minimal blogging theme for Stackbit
