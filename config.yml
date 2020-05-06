@@ -1,4 +1,4 @@
-baseurl: "/"
+baseurl: ""
 title: "ebmarquez"
 page_load_js: "assets/js/main.js"
 params:
