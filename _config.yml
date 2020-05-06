@@ -1,5 +1,5 @@
 baseurl: "public"
-title: "ebmarquez"
+title: "test ebmarquez"
 page_load_js: "public/assets/js/main.js"
 params:
   description: Test blog on github
