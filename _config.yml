@@ -88,7 +88,7 @@ defaults:
       path: "_networking"
       type: posts
     values:
-      layout: posts
+      layout: post
       read_time: true
   - scope:
       path: "_code"
