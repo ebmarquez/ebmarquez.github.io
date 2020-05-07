@@ -16,6 +16,7 @@ t:
   newer: "Newer"
   older: "Older"
   email: "Email"
+  linkedin: "Linkedin"
   subscribe: "Subscribe"
   read_more: "Read More"
   posts: "Posts"
@@ -37,3 +38,4 @@ navigation_pages:
   - about.md
   - cv.md
   - posts.md
+  - networking.md

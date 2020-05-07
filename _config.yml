@@ -15,7 +15,7 @@
 # in the templates via {{ site.myvariable }}.
 lang: en-US
 title: Networking, Code, Automation
-email: ebmarquez@example.com
+#email: ebmarquez@example.com
 description: "Just another blog that will discuss code, networking and some automation"
 baseurl: "" # the optional subpath of your site, e.g. "/blog"
 url: https://ebmarquez.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
@@ -25,6 +25,7 @@ author:
   picture: /assets/images/me_400x400.jpg
 twitter_username: ebmarquez
 github_username: ebmarquez
+linkedin_username: ericmarquez
 logo: # path of site logo, e.g. "/assets/images/logo.png"
 
 search: true # true, false (default)
@@ -80,19 +81,19 @@ defaults:
   # _posts
   - scope:
       path: "_posts"
-      type: posts
+      #type: posts
     values:
       layout: post
       read_time: true
   - scope:
       path: "_networking"
-      type: posts
+      #type: posts
     values:
       layout: posts
       read_time: true
   - scope:
       path: "_code"
-      type: posts
+      #type: posts
     values:
       layout: posts
       read_time: true
