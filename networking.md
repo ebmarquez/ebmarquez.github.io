@@ -1,6 +1,6 @@
 ---
 title: Networking
 layout: posts
-permalink: /posts/networking/
+permalink: /networking/
 entries_layout: list
 ---
