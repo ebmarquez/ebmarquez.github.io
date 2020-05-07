@@ -85,14 +85,14 @@ defaults:
       layout: post
       read_time: true
   - scope:
-      path: "_postsnetwork"
-      type: network
+      path: "_networking"
+      type: posts
     values:
       layout: posts
       read_time: true
   - scope:
       path: "_code"
-      type: code
+      type: posts
     values:
       layout: posts
       read_time: true
