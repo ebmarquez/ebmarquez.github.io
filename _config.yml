@@ -17,7 +17,7 @@ lang: en-US
 title: Networking, Code, Automation
 email: ebmarquez@example.com
 description: "Just another blog that will discuss code, networking and some automation"
-baseurl: # the optional subpath of your site, e.g. "/blog"
+baseurl: "" # the optional subpath of your site, e.g. "/blog"
 url: https://ebmarquez.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 author:
   name: "Eric Marquez"
@@ -84,15 +84,15 @@ defaults:
     values:
       layout: post
       read_time: true
-  - scope:
-      path: "_postsnetwork"
-      type: network
-    values:
-      layout: posts
-      read_time: true
-  - scope:
-      path: "_code"
-      type: code
-    values:
-      layout: posts
-      read_time: true
+  # - scope:
+  #     path: "_postsnetwork"
+  #     type: network
+  #   values:
+  #     layout: posts
+  #     read_time: true
+  # - scope:
+  #     path: "_code"
+  #     type: code
+  #   values:
+  #     layout: posts
+  #     read_time: true
