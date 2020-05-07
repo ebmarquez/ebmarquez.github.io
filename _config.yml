@@ -15,7 +15,6 @@
 # in the templates via {{ site.myvariable }}.
 lang: en-US
 title: Networking, Code, Automation
-#email: ebmarquez@example.com
 description: "Just another blog that will discuss code, networking and some automation"
 baseurl: "" # the optional subpath of your site, e.g. "/blog"
 url: https://ebmarquez.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
