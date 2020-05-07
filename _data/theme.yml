@@ -39,3 +39,5 @@ navigation_pages:
   - cv.md
   - posts.md
   - networking.md
+  - categories.md
+  - tags.md

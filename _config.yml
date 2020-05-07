@@ -80,19 +80,8 @@ defaults:
   # _posts
   - scope:
       path: "_posts"
-      #type: posts
-    values:
-      layout: post
-      read_time: true
-  - scope:
-      path: "_networking"
       type: posts
     values:
       layout: post
       read_time: true
-  - scope:
-      path: "_code"
-      #type: posts
-    values:
-      layout: posts
-      read_time: true
+
