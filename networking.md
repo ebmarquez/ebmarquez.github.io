@@ -1,6 +1,6 @@
 ---
-title: Networking Archive
+title: Networking
 layout: posts
-permalink: /networking/
+permalink: /posts/networking/
 entries_layout: list
 ---

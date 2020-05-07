@@ -85,8 +85,8 @@ defaults:
       layout: post
       read_time: true
   - scope:
-      path: "_networking"
-      #type: posts
+      path: "_posts/_networking"
+      type: posts
     values:
       layout: posts
       read_time: true
