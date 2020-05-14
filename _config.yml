@@ -13,75 +13,30 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-lang: en-US
-title: Networking, Code, Automation
-description: "Just another blog that will discuss code, networking and some automation"
-baseurl: "" # the optional subpath of your site, e.g. "/blog"
-url: https://ebmarquez.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
-author:
-  name: "Eric Marquez"
-  twitter: ebmarquez
-  picture: /assets/images/me_400x400.jpg
-twitter_username: ebmarquez
+title: Networking, Automation, Code
+name: 
+description: 
+  Just another blog that will discuss code, networking and some automation.
+baseurl: "" # the subpath of your site, e.g. /blog
 github_username: ebmarquez
-linkedin_username: ericmarquez
-logo: # path of site logo, e.g. "/assets/images/logo.png"
 
-search: true # true, false (default)
-search_full_content: false # true, false (default)
-search_provider: # lunr (default), algolia
-algolia:
-  application_id: # YOUR_APPLICATION_ID
-  index_name: # YOUR_INDEX_NAME
-  search_only_api_key: # YOUR_SEARCH_ONLY_API_KEY
-  powered_by: # true (default), false
+# jekyll-paginate configuration
+paginate: 10
 
 # Build settings
 markdown: kramdown
-theme: jekyll-theme-basically-basic
-plugins: # previsously gems
+#theme: minima
+plugins:
   - jekyll-feed
-  - jekyll-seo-tag
   - jekyll-sitemap
   - jekyll-paginate
-feed:
-  path: atom.xml
-
-# Pagination - https://jekyllrb.com/docs/pagination/
-paginate: 10
-paginate_path: /page:num/
-
-# Exclude from processing.
 exclude:
-  - .asset-cache
-  - .bundle
-  - .codeclimate.yml
-  - .editorconfig
-  - .gitattributes
-  - .jekyll-assets-cache
-  - .sass-cache
-  - .scss-lint.yml
-  - CHANGELOG
   - Gemfile
   - Gemfile.lock
-  - LICENSE
-  - node_modules
-  - Rakefile
-  - README
-  - vendor/bundle/
-  - vendor/cache/
-  - vendor/gems/
-  - vendor/ruby/
-  - /docs # ignore Basically Basic sample site
-  - /example # ignore Basically Basic dev site
+include: ["_pages"]
+permalink: /posts/:title/
+excerpt_separator: <!--more-->
+author: http://www.linkedin.com/in/ericmarquez
 
-# Front Matter Defaults
-defaults:
-  # _posts
-  - scope:
-      path: "_posts"
-      type: posts
-    values:
-      layout: post
-      read_time: true
+host: 0.0.0.0
 
