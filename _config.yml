@@ -25,7 +25,6 @@ paginate: 10
 
 # Build settings
 markdown: kramdown
-theme: black
 plugins:
   - jekyll-feed
   - jekyll-sitemap
