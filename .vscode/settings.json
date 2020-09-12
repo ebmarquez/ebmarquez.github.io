@@ -1,5 +1,6 @@
 {
     "spellchecker.ignoreWordsList": [
         "PowerShell"
-    ]
+    ],
+    "powershell.codeFormatting.addWhitespaceAroundPipe": true
 }
