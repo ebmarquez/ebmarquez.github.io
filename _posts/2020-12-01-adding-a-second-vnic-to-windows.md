@@ -28,7 +28,7 @@ To configure windows, the following set of commands needs to be performed.
 
 The first thing we need is the network adapter names.  This server has more than two network interfaces installed. To ensure I'm working with the correct interfaces I’ll need to gather the actual interface names.  I happen to know the interfaces names contain the word "Slot".
 
-```PowerShell
+```powershell
 $nicName = Get-NetAdapter | Where-Object {$_.Name -match "Slot"}
 $nicName.Name
 SLOT 3 2
@@ -45,7 +45,7 @@ New-NetLbfoTeam -Name LBFOTeam –TeamMembers $nicName -TeamingMode SwitchIndepe
 
 At this point the team is setup and should come online within a few minutes.  The next three steps will setup the virtual switch (VSwitch), attach a virtual network (VNIC) adapter to the VSwitch, and rename the VNIC. If you used the GUI this is where the GUI ends.  The GUI does not allow you to add multiple VNIC's, but PowerShell does.  As I stated above, my management network is already setup with DHCP so once the Management adapter is added it will pick up an IP address.
 
-```PowerShell
+```powershell
 # Virutal Switch setup
 New-VMSwitch -Name HVSwitch –NetAdapterName "LBFOTeam" –MinimumBandwidthMode Weight –AllowManagementOS $false
 # Attach a virtual NIC.
@@ -56,7 +56,7 @@ Get-NetAdapter -Name *Management* | Rename-NetAdapter -NewName Management
 
 Next, the secondary VNIC needs to be setup and connected to my lab network.  To do this, some of the same steps need to be performed with one additional step, attaching the NIC to a VLAN id.
 
-```PowerShell
+```powershell
 # Add the additional VNIC
 Add-VMNetworkAdapter -ManagementOS -Name Lab -SwitchName HVSwitch
 # Rename it to a proper name
@@ -67,7 +67,7 @@ Set-VMNetworkAdapterVlan -ManagementOS -VMNetworkAdapterName Lab -Access -VlanId
 
 At this point the VNIC is established and connected to the lab network with the VLAN id of 3000.  When a host has two different networks attached, there is one rule.  There can only be one default gateway.  Keeping to this rule, when the static ip is configured, the gateway is not going to be configured.  Static routes will be used to route beyond the subnet attached subnet.
 
-```PowerShell
+```powershell
 # Add a Static IP to the new VNIC
 Set-NetIPAddress -InterfaceAlias Lab -IPAddress 192.168.1.10 -AddressFamily IPv4 -PrefixLength 24
 # setup the static route to allow access to the lab network.
