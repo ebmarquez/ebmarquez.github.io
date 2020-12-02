@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Adding A Second VNIC to Windows
+title: Adding A Second VNIC To Windows
 date: 2020-12-01 13:01
 category: 
  - PowerShell
@@ -69,7 +69,7 @@ At this point the VNIC is established and connected to the lab network with the 
 
 ```powershell
 # Add a Static IP to the new VNIC
-Set-NetIPAddress -InterfaceAlias Lab -IPAddress 192.168.1.10 -AddressFamily IPv4 -PrefixLength 24
+New-NetIPAddress -InterfaceAlias Lab -IPAddress 192.168.1.10 -AddressFamily IPv4 -PrefixLength 24
 # setup the static route to allow access to the lab network.
 New-NetRoute -DestinationPrefix 10.16.0.0/12 -InterfaceAlias Lab -AddressFamily IPv4 -NextHop 192.168.1.1
 New-NetRoute -DestinationPrefix 192.168.1.0/24 -InterfaceAlias Lab -AddressFamily IPv4 -NextHop 192.168.1.1
