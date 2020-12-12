@@ -10,7 +10,7 @@ summary: Using PowerShell Find and Save Modules.
 
 Today I wanted to discuss a couple of PowerShell tools I needed to utilize this week, Find-Module and Save-Module.  These are powerful tools if you’re working with a restricted environment and don’t have direct access to PSGallery.  Find-Module and Save-Module are helpful tools and can identify required modules and save them to a temporary location.  These modules are built-in PowerShell method that allows you to call into PSGallery or a specific repository.  In my case, I only need access to PSGallery and the system I’m working with has internet access.  Let’s get started.
 
-## Find-Module
+# Find-Module
 
 Starting with Find-Module, it can call into a repository like PSGallery to query modules that have a matching name.  The names don’t need to be exact when using a wildcard with the name. 
 
@@ -92,7 +92,7 @@ PackageManagementProvider  : NuGet
 
 Now that the Module has been discovered, how to download it for easy transfer to my system?
 
-## Save-Module
+# Save-Module
 
 The Save-Module was created take module package and place it in a specific location so it can be transferred to its ultimate destination.   Like Find-Module this method can narrowly download a specific version it that is needed.  Is has similar parameters like MaximumVersion, MinimumVersion and RequiredVersion.  One of the required parameters is the -Path.  This will tell the method where to deposit the downloaded package. Both examples will accomplish the same job.
 
