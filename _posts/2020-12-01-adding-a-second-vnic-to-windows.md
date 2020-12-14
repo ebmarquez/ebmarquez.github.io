@@ -2,6 +2,7 @@
 layout: post
 title: Adding A Second VNIC To Windows
 date: 2020-12-01 13:01
+comments: true
 category: 
  - PowerShell
  - Windows

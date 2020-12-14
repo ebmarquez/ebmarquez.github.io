@@ -2,6 +2,7 @@
 layout: post
 title: Find And Save Modules with PowerShell
 date: 2020-12-12 15:37
+comments: true
 category: PowerShell
 author: Eric Marquez
 tags: [Windows, PowerShell]
