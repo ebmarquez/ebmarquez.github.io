@@ -1,1 +1,0 @@
-# directory for time lapse
