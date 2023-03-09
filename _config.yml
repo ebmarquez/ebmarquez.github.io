@@ -42,10 +42,10 @@ social:
     # The first element serves as the copyright owner's link
     - https://github.com/ebmarquez       # change to your github homepage
     - https://twit.social/@ebmarquez
-    #- https://twitter.com/ebmarquez
+    - https://twitter.com/ebmarquez
     # Uncomment below to add more social links
     # - https://www.facebook.com/username
-    # - https://www.linkedin.com/in/username
+    - https://www.linkedin.com/in/ericmarquez/
 
 # Site Verification Settings
 webmaster_verifications:
@@ -85,7 +85,7 @@ analytics:
 #     light  - Use the light color scheme
 #     dark   - Use the dark color scheme
 #
-theme_mode: # [light | dark]
+theme_mode:   dark
 
 # The CDN endpoint for media resources.
 # Notice that once it is assigned, the CDN url
@@ -215,6 +215,7 @@ exclude:
   - LICENSE
   - "*.config.js"
   - package*.json
+  - init.sh
 
 jekyll-archives:
   enabled: [categories, tags]
