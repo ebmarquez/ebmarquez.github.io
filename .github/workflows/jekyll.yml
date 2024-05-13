@@ -38,14 +38,23 @@ jobs:
           ruby-version: '3.3' # Not needed with a .ruby-version file
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           cache-version: 0 # Increment this number if you need to re-download cached gems
-          
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
 
+      - name: ruby info
+        run: ruby -v
+        
+      - name: theme info
+        run: bundle info jekyll-theme-chirp
+      
+      - name: jekyll infi
+        run: bundle exec jekyll -v
+
       - name: Build with Jekyll
         # Outputs to the './_site' directory by default
-        run: bundle exec jekyll b -d "_site${{ steps.pages.outputs.base_path }}"
+        run: bundle exec jekyll b -d "${{ steps.pages.outputs.base_path }}"
         env:
           JEKYLL_ENV: production
 
