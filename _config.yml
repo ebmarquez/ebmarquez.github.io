@@ -67,6 +67,14 @@ analytics:
     id: UA-85583-3                 # fill in your Google Analytics ID
   goatcounter:
     id: # fill in your GoatCounter ID
+  umami:
+    id: # fill in your Umami ID
+    domain: # fill in your Umami domain
+  matomo:
+    id: # fill in your Matomo ID
+    domain: # fill in your Matomo domain
+  cloudflare:
+    id: # fill in your Cloudflare Web Analytics token
 
 # Pageviews settings
 pageviews:
@@ -85,12 +93,12 @@ pageviews:
 #
 theme_mode:   dark
 
-# The CDN endpoint for images.
+# The CDN endpoint for media resources.
 # Notice that once it is assigned, the CDN url
-# will be added to all image (site avatar & posts' images) paths starting with '/'
+# will be added to all media resources (site avatar, posts' images, audio and video files) paths starting with '/'
 #
 # e.g. 'https://cdn.com'
-img_cdn: '/'
+cdn: "https://chirpy-img.netlify.app"
 
 # the avatar on sidebar, support local or CORS resources
 avatar: 'assets/common/avatar.jpg'
@@ -119,6 +127,7 @@ comments:
     category:
     category_id:
     mapping: # optional, default to 'pathname'
+    strict: # optional, default to '0'
     input_position: # optional, default to 'bottom'
     lang: # optional, default to the value of `site.lang`
     reactions_enabled: # optional, default to the value of `1`
@@ -149,6 +158,7 @@ baseurl: ""
 # ------------ The following options are not recommended to be modified ------------------
 
 kramdown:
+  footnote_backlink: "&#8617;&#xfe0e;"
   syntax_highlighter: rouge
   syntax_highlighter_opts: # Rouge Options › https://github.com/jneen/rouge#full-options
     css_class: highlight
@@ -209,7 +219,7 @@ exclude:
   - tools
   - README.md
   - LICENSE
-  - rollup.config.js
+  - "*.config.js"
   - package*.json
   - init.sh
 
