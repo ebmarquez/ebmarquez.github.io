@@ -64,7 +64,7 @@ webmaster_verifications:
 # Web Analytics Settings
 analytics:
   google:
-    id: UA-85583-3                 # fill in your Google Analytics ID
+    id: UA-85583-3 # fill in your Google Analytics ID
   goatcounter:
     id: # fill in your GoatCounter ID
   umami:
@@ -75,10 +75,6 @@ analytics:
     domain: # fill in your Matomo domain
   cloudflare:
     id: # fill in your Cloudflare Web Analytics token
-
-# Pageviews settings
-pageviews:
-  provider: # now only supports 'goatcounter'
 
 # Prefer color scheme setting.
 #
@@ -98,7 +94,7 @@ theme_mode:   dark
 # will be added to all media resources (site avatar, posts' images, audio and video files) paths starting with '/'
 #
 # e.g. 'https://cdn.com'
-cdn: "https://chirpy-img.netlify.app"
+img_cdn: '/'
 
 # the avatar on sidebar, support local or CORS resources
 avatar: 'assets/common/avatar.jpg'
