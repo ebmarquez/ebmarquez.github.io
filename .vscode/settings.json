@@ -2,7 +2,6 @@
   // Prettier
   "editor.defaultFormatter": "vscode.markdown-language-features",
   "editor.formatOnSave": true,
-  "prettier.trailingComma": "none",
   // Shopify Liquid
   "files.associations": {
     "*.html": "liquid"
