@@ -230,8 +230,9 @@ exclude:
   - README.md
   - LICENSE
   - "*.config.js"
-  - package*.json
   - init.sh
+  - "*.js"
+  - "package*.json"
 
 jekyll-archives:
   enabled: [categories, tags]
