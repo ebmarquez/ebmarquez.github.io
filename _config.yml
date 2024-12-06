@@ -229,9 +229,8 @@ exclude:
   - tools
   - README.md
   - LICENSE
-  - "*.config.js"
-  - init.sh
-  - "*.js"
+  - purgecss.js
+  - rollup.config.js
   - "package*.json"
 
 jekyll-archives:
