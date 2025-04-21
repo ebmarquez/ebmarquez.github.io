@@ -195,6 +195,10 @@ defaults:
       path: assets/js/dist
     values:
       swcache: true
+  - scope:
+      path: .well-known/appspecific
+    values:
+      layout: none
 
 sass:
   style: compressed
@@ -208,6 +212,8 @@ compress_html:
   ignore:
     envs: [development]
 
+include:
+  - .well-known
 exclude:
   - "*.gem"
   - "*.gemspec"
