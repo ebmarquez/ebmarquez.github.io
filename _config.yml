@@ -172,6 +172,10 @@ collections:
 
 defaults:
   - scope:
+      path: .well-known\appspecific
+    values:
+      layout: none
+  - scope:
       path: "" # An empty string here means all files in the project
       type: posts
     values:
@@ -195,10 +199,6 @@ defaults:
       path: assets/js/dist
     values:
       swcache: true
-  - scope:
-      path: .well-known/appspecific
-    values:
-      layout: none
 
 sass:
   style: compressed
