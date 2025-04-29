@@ -37,20 +37,11 @@ jobs:
         with:
           ruby-version: '3.3' # Not needed with a .ruby-version file
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-          cache-version: 0 # Increment this number if you need to re-download cached gems
+          #cache-version: 0 # Increment this number if you need to re-download cached gems
 
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
-
-      - name: ruby info
-        run: ruby -v
-
-      - name: theme info
-        run: bundle info jekyll-theme-chirp
-      
-      - name: jekyll infi
-        run: bundle exec jekyll -v
 
       - name: Build with Jekyll
         # Outputs to the './_site' directory by default
@@ -59,7 +50,7 @@ jobs:
           JEKYLL_ENV: production
 
       - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3.0.1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: "_site/${{ steps.pages.outputs.base_path }}"
 
@@ -73,4 +64,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4.0.5
+        uses: actions/deploy-pages@v4

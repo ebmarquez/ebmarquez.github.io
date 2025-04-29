@@ -26,5 +26,6 @@
   "stylelint.validate": ["css", "less", "postcss", "scss"],
   "files.autoSave": "afterDelay",
   "editor.renderWhitespace": "all",
-  "belikejekyll.enabled": true
+  "belikejekyll.enabled": true,
+  "sarif-viewer.connectToGithubCodeScanning": "off"
 }
