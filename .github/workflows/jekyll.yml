@@ -49,6 +49,20 @@ jobs:
         env:
           JEKYLL_ENV: production
 
+      - name: Verify .well-known directory
+        run: |
+          echo "Checking for .well-known directory structure..."
+          ls -la _site/.well-known/appspecific/ || echo "Directory not found"
+          if [ -f "_site/.well-known/appspecific/com.tesla.3p.public-key.pem" ]; then
+            echo "Tesla public key found!"
+            echo "File size: $(stat -c%s _site/.well-known/appspecific/com.tesla.3p.public-key.pem) bytes"
+            echo "First few lines of the file:"
+            head -3 _site/.well-known/appspecific/com.tesla.3p.public-key.pem
+          else
+            echo "ERROR: Tesla public key file not found!"
+            exit 1
+          fi
+
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
