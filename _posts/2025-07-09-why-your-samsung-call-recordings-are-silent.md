@@ -13,7 +13,7 @@ excerpt: "Discovered why call recordings on Samsung phones produce silent files 
 
 Picture this: You're on an important call with a friend, discussing some complex details that you definitely want to remember later. Being the smart cookie you are, you think "I'll just record this and use AI to transcribe it later!" You hit that shiny record button, the phone dutifully announces "Call being recorded" like the helpful assistant it pretends to be, and you continue your conversation feeling pretty smug about your tech-savvy solution.
 
-![Samsung Call Recording Button](/assets/img/why-your-samsung-call-recordings-are-silent/start-call-recording.jpg)
+<img src="/assets/img/why-your-samsung-call-recordings-are-silent/start-call-recording.jpg" alt="Samsung Call Recording Button" style="width: 25%;">
 *The innocent-looking call recording button that promises so much but delivers... silence.*
 
 Fast forward to later that day. You're ready to get those details, confident that you don't need to scramble through hastily scribbled notes because, hey, you've got a recording! You open the file, ready to feed it to your favorite AI transcription tool, and then...
