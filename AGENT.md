@@ -95,6 +95,13 @@ This is Eric Marquez's personal blog and knowledge base, built with Jekyll using
 - Respect copyright and licensing
 - Follow GitHub's community guidelines
 
+### Tesla Fleet API Integration
+- **Public Key Location:** Tesla public key must be accessible at `/.well-known/appspecific/com.tesla.3p.public-key.pem`
+- **File Format:** PEM format with proper BEGIN/END markers
+- **Content-Type:** Should be served as `application/x-pem-file` or `text/plain`
+- **GitHub Actions:** Automated verification ensures file is included in builds
+- **Home Assistant:** Enables Tesla Fleet integration via public key endpoint
+
 ## Automation Rules
 
 ### For AI Assistants
