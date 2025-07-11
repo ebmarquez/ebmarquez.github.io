@@ -14,6 +14,7 @@ excerpt: "Discovered why call recordings on Samsung phones produce silent files 
 Picture this: You're on an important call with a friend, discussing some complex details that you definitely want to remember later. Being the smart cookie you are, you think "I'll just record this and use AI to transcribe it later!" You hit that shiny record button, the phone dutifully announces "Call being recorded" like the helpful assistant it pretends to be, and you continue your conversation feeling pretty smug about your tech-savvy solution.
 
 <img src="/assets/img/why-your-samsung-call-recordings-are-silent/start-call-recording.jpg" alt="Samsung Call Recording Button" style="width: 25%;">
+
 *The innocent-looking call recording button that promises so much but delivers... silence.*
 
 Fast forward to later that day. You're ready to get those details, confident that you don't need to scramble through hastily scribbled notes because, hey, you've got a recording! You open the file, ready to feed it to your favorite AI transcription tool, and then...
@@ -79,7 +80,7 @@ It's like a modern-day monkey's paw situation: You wished for convenient call re
 
 ## The Fix That'll Make You Feel Smart 🧠
 
-Ready for the solution that's so simple you'll want to facepalm? Disable Wi-Fi Calling before making calls you want to record. You can either turn off Wi-Fi entirely or just disable the Wi-Fi Calling feature in your phone settings. That's it. 
+Ready for the solution that's so simple you'll want to facepalm? Disable Wi-Fi Calling before making calls you want to record. You can either turn off Wi-Fi entirely or just disable the Wi-Fi Calling feature in your phone settings. That's it.
 
 Yes, it really is that simple. After hours of troubleshooting, debugging, and diving into log files—because that's how technology works, isn't it? The most complex problems often have the most ridiculously simple solutions.
 
