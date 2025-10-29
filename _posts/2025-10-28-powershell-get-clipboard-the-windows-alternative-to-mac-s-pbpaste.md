@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "PowerShell Get-Clipboard: The Windows Alternative to Mac's pbpaste"
-date: 2025-10-28 23:15:34 -0700
+date: 2025-10-28
 categories: [PowerShell, Tips, Windows]
 tags: [powershell, clipboard, windows, productivity, commandline]
 author: Eric Marquez
