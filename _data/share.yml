@@ -14,10 +14,7 @@ platforms:
   #   type: Telegram
   #   icon: "fab fa-telegram"
   #   link: "https://t.me/share/url?url=URL&text=TITLE"
-  - 
-    type: mastodon
-    icon: "fab fa-mastodon"
-    
+  
   # Uncomment below if you need to.
   #
   # - type: Linkedin
