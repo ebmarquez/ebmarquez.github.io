@@ -18,6 +18,9 @@ tags:
   - parenting
   - life-lessons
 description: "A travel nightmare that started with a traffic cone on a hockey rink."
+image:
+  path: /assets/img/the-traffic-cone-should-have-been-a-warning/top.jpg
+  alt: "Kids playing hockey at night on a pond"
 ---
 
 # The Traffic Cone Should Have Been a Warning
