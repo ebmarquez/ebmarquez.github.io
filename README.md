@@ -43,6 +43,22 @@
 
 To learn how to use, develop, and upgrade the project, please refer to the [Wiki][wiki].
 
+## 🤖 MCP Agents
+
+This repository includes four expert MCP (Model Context Protocol) agents to assist with blog development:
+
+- **🔧 DevOps & GitHub Actions Expert** (12 years) - Workflow automation, CI/CD, deployments
+- **💎 Jekyll Senior Developer** (10 years) - Theme customization, Liquid templates, Jekyll expertise
+- **📝 Senior Technical Editor** (15 years, Stanford MA) - Content review, documentation, SEO
+- **✨ Technical Content Blogger** (10 years) - Engaging writing, storytelling, catchy titles
+
+**Get started**: [.github/copilot/INDEX.md](.github/copilot/INDEX.md) | [Quick Reference](.github/copilot/QUICK_REFERENCE.md) | [Setup Guide](.github/copilot/SETUP_COMPLETE.md)
+
+Try it:
+```
+@workspace As a Jekyll expert, show me my Chirpy theme structure
+```
+
 ## Contributing
 
 Contributions (_pull requests_, _issues_, and _discussions_) are what make the open-source community such an amazing place
