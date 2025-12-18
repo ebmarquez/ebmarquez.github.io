@@ -51,7 +51,7 @@ jobs:
           node-version: 20
 
       - name: Build JavaScript assets
-        run: npm ci && npm run build
+        run: npm install && npm run build
 
       - name: Build site
         run: bundle exec jekyll b -d "_site${{ steps.pages.outputs.base_path }}"
