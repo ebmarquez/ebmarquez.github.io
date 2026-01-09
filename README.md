@@ -59,6 +59,22 @@ Try it:
 @workspace As a Jekyll expert, show me my Chirpy theme structure
 ```
 
+## 🛠️ Helper Tools
+
+This repository includes scripts to help maintain post quality and consistency:
+
+
+### Validate Post Dates
+```powershell
+.\tools\validate-posts.ps1
+```
+Checks all posts for timestamp issues before committing:
+- Warns about noon or later timestamps that can cause publish delays
+- Detects future-dated posts that Jekyll might skip
+- Recommends using `00:00:00 -0800` for consistency
+
+**Automatic Validation:** The GitHub Actions workflow automatically validates post dates on every push.
+
 ## Contributing
 
 Contributions (_pull requests_, _issues_, and _discussions_) are what make the open-source community such an amazing place

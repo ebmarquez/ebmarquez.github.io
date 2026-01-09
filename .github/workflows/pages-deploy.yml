@@ -50,6 +50,61 @@ jobs:
         with:
           node-version: 20
 
+      - name: Validate post dates
+        run: |
+          echo "🔍 Checking post timestamps for potential publish issues..."
+          
+          # Get current time in UTC
+          CURRENT_UTC=$(date -u +%s)
+          
+          # Check all posts in _posts directory
+          POST_ISSUES=0
+          
+          for post in _posts/*.md; do
+            if [ ! -f "$post" ]; then
+              continue
+            fi
+            
+            # Extract date from frontmatter (looking for "date: YYYY-MM-DD HH:MM:SS -HHMM")
+            POST_DATE=$(grep -E '^date:\s*' "$post" | head -1 | sed 's/date:\s*//')
+            
+            if [ -z "$POST_DATE" ]; then
+              echo "⚠️  Warning: No date found in $post"
+              continue
+            fi
+            
+            # Check if using noon or later PST/PDT (12:00:00 or later)
+            if echo "$POST_DATE" | grep -qE '(1[2-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\s+-08'; then
+              echo "⚠️  Warning: $post uses noon or later timestamp: $POST_DATE"
+              echo "   Recommend using 00:00:00 -0800 to avoid Jekyll future post issues"
+              POST_ISSUES=$((POST_ISSUES + 1))
+            fi
+            
+            # Parse date and convert to UTC epoch for comparison
+            # Extract just YYYY-MM-DD HH:MM:SS -HHMM part
+            POST_TIMESTAMP=$(echo "$POST_DATE" | sed -E 's/([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2}\s+-[0-9]{4}).*/\1/')
+            
+            # Convert to UTC epoch (this is approximate, good enough for checking)
+            POST_EPOCH=$(date -d "$POST_TIMESTAMP" +%s 2>/dev/null || echo "0")
+            
+            if [ "$POST_EPOCH" -gt "$CURRENT_UTC" ]; then
+              POST_FILE=$(basename "$post")
+              echo "⚠️  Warning: $POST_FILE has future timestamp: $POST_DATE"
+              echo "   Current UTC: $(date -u '+%Y-%m-%d %H:%M:%S')"
+              echo "   This post may not be published by Jekyll (future: false is default)"
+              POST_ISSUES=$((POST_ISSUES + 1))
+            fi
+          done
+          
+          if [ $POST_ISSUES -gt 0 ]; then
+            echo ""
+            echo "⚠️  Found $POST_ISSUES post(s) with potential timestamp issues"
+            echo "ℹ️  Note: This site has 'future: true' enabled, so posts should still publish"
+            echo "ℹ️  Best practice: Use 00:00:00 -0800 for all post dates"
+          else
+            echo "✅ All post timestamps look good!"
+          fi
+
       - name: Build JavaScript assets
         run: npm install && npm run build
 

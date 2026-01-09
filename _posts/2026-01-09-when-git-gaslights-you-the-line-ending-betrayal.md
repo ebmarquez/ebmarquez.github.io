@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "When Git Gaslights You: The Line Ending Betrayal"
-date: 2026-01-09 00:00:00 -0800
+date: 2026-01-09 12:00:00 -0800
 categories: [development, git]
 tags: [git, development, troubleshooting, windows, cross-platform, version-control, devops]
 author: Eric Marquez

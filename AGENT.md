@@ -19,16 +19,22 @@ This is Eric Marquez's personal blog and knowledge base, built with Jekyll using
 ### Post Creation Guidelines
 - **Location:** All posts must be placed in `_posts/` directory
 - **Naming:** Use format `YYYY-MM-DD-title-with-hyphens.md`
+- **Date Handling:** 
+  - **CRITICAL:** Always use `00:00:00 -0800` (midnight Pacific) for post timestamps
+  - **Format:** `YYYY-MM-DD 00:00:00 -0800`
+  - **Reason:** Prevents Jekyll from treating posts as "future" during GitHub Actions builds (which run in UTC)
+  - **Example:** `date: 2026-01-09 00:00:00 -0800` (NOT noon or any other time)
+  - The site has `future: true` enabled, but midnight timestamps ensure consistency
 - **Frontmatter:** Include required fields:
   ```yaml
   ---
   layout: post
   title: Your Post Title
-  date: YYYY-MM-DD HH:MM
-  category: [technology|food|real-estate|projects|code]
-  author: ebmarquez
+  date: YYYY-MM-DD 00:00:00 -0800
+  categories: [development, git]
   tags: [relevant, tags, here]
-  summary: Brief description of the post
+  author: Eric Marquez
+  description: Brief description of the post for SEO
   ---
   ```
 
