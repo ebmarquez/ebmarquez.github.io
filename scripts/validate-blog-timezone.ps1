@@ -34,6 +34,11 @@ function Test-BlogPost {
         } elseif ($dateLine -notmatch '(-0800|-0700)') {
             $issues += "Wrong timezone (must be -0800 or -0700)"
         }
+        
+        # Check if time is NOT midnight (00:00:00)
+        if ($dateLine -notmatch '00:00:00') {
+            $issues += "Must use midnight (00:00:00) for all posts"
+        }
     } else {
         $issues += "No date field"
     }
@@ -52,9 +57,12 @@ function Repair-BlogPost {
     param([hashtable]$ValidationResult)
     $content = $ValidationResult.Content
     $currentOffset = Get-CurrentPacificOffset
-    $content = $content -replace '(date:\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+)[-+]\d{4}', "`$1$currentOffset"
+    
+    # Fix timezone AND enforce midnight (00:00:00)
+    $content = $content -replace '(date:\s*\d{4}-\d{2}-\d{2}\s+)\d{2}:\d{2}:\d{2}(\s+)[-+]\d{4}', "`${1}00:00:00`$2$currentOffset"
+    
     Set-Content -Path $ValidationResult.FilePath -Value $content -NoNewline
-    Write-Host "  FIXED timezone to $currentOffset" -ForegroundColor Green
+    Write-Host "  FIXED to midnight with timezone $currentOffset" -ForegroundColor Green
 }
 
 Write-Host ""

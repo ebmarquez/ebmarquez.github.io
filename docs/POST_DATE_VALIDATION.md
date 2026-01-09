@@ -40,12 +40,6 @@ Added explicit date handling rules to:
 - [AGENT.md](AGENT.md) - Repository-wide agent instructions
 - [.github/copilot-instructions.md](.github/copilot-instructions.md) - GitHub Copilot specific
 
-### 5. Post Creation Script
-Create new posts with correct formatting:
-```powershell
-.\tools\new-post.ps1 -Title "Your Post Title" -Categories "development" -Tags "git", "jekyll"
-```
-
 ## Quick Reference
 
 ### ✅ Correct Date Format
@@ -65,7 +59,6 @@ date: 2026-01-10 00:00:00 -0800  # Actual future date
 - ✅ `.github/workflows/pages-deploy.yml` - Added validation step
 - ✅ `.github/copilot-instructions.md` - Created Copilot instructions
 - ✅ `AGENT.md` - Updated with date handling rules
-- ✅ `tools/new-post.ps1` - Post creation script
 - ✅ `tools/validate-posts.ps1` - Local validation script
 - ✅ `_config.yml` - Added `future: true`
 - ✅ `README.md` - Documented helper tools
@@ -73,7 +66,7 @@ date: 2026-01-10 00:00:00 -0800  # Actual future date
 ## Commit These Changes
 
 ```powershell
-git add .github/copilot-instructions.md .github/workflows/pages-deploy.yml AGENT.md tools/new-post.ps1 tools/validate-posts.ps1 _config.yml README.md
+git add .github/copilot-instructions.md .github/workflows/pages-deploy.yml AGENT.md tools/validate-posts.ps1 _config.yml README.md
 git commit -m "feat: add post date validation and helper tools"
 git push
 ```
