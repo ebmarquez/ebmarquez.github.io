@@ -151,17 +151,33 @@ jobs:
 
       - name: Verify posts in RSS feed
         run: |
-          echo "🔍 Verifying published posts in RSS feed..."
+          echo "🔍 Verifying latest post in RSS feed..."
 
           FEED_URL="https://ebmarquez.github.io/feed.xml"
           MAX_ATTEMPTS=5
           ATTEMPT=1
 
-          # Get the 5 most recent posts (feed only shows 5)
-          RECENT_POSTS=$(ls -t _posts/*.md | head -5)
+          # Get the most recent post only
+          LATEST_POST=$(ls -t _posts/*.md | head -1)
+
+          if [ ! -f "$LATEST_POST" ]; then
+            echo "❌ ERROR: No posts found in _posts directory"
+            exit 1
+          fi
+
+          # Extract title from the latest post
+          LATEST_TITLE=$(grep -E '^title:\s*' "$LATEST_POST" | head -1 | sed 's/title:\s*//' | sed 's/^["'\'']//' | sed 's/["'\'']$//')
+
+          if [ -z "$LATEST_TITLE" ]; then
+            echo "❌ ERROR: No title found in $(basename "$LATEST_POST")"
+            exit 1
+          fi
+
+          echo "📝 Latest post: $LATEST_TITLE"
+          echo "   File: $(basename "$LATEST_POST")"
+          echo ""
 
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Attempt $ATTEMPT of $MAX_ATTEMPTS"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -172,6 +188,8 @@ jobs:
             if [ -z "$FEED_CONTENT" ]; then
               echo "❌ ERROR: Failed to fetch feed.xml"
               if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                echo ""
+                echo "❌ FAILED: Could not fetch RSS feed after $MAX_ATTEMPTS attempts"
                 exit 1
               fi
               echo "⏳ Waiting 30 seconds before retry..."
@@ -181,23 +199,30 @@ jobs:
             fi
             
             echo "✅ Successfully fetched feed.xml"
-            echo ""
             
-            # Check only the 5 most recent posts
-            POST_COUNT=0
-            MISSING_COUNT=0
-            MISSING_POSTS=""
-            
-            for post in $RECENT_POSTS; do
-              if [ ! -f "$post" ]; then
-                continue
+            # Check if the latest post title appears in feed
+            if echo "$FEED_CONTENT" | grep -q "$LATEST_TITLE"; then
+              echo "✅ Found latest post in RSS feed!"
+              echo ""
+              echo "🎉 Success: '$LATEST_TITLE' is published"
+              exit 0
+            else
+              echo "❌ Latest post NOT found in feed"
+              
+              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                echo ""
+                echo "❌ FAILED: After $MAX_ATTEMPTS attempts, latest post is still missing from feed"
+                echo "   Post: $LATEST_TITLE"
+                echo "   File: $(basename "$LATEST_POST")"
+                exit 1
+              else
+                echo "⏳ Waiting 30 seconds before retry..."
+                sleep 30
+                ATTEMPT=$((ATTEMPT + 1))
               fi
-              
-              POST_COUNT=$((POST_COUNT + 1))
-              
-              # Extract title from frontmatter
-              TITLE=$(grep -E '^title:\s*' "$post" | head -1 | sed 's/title:\s*//' | sed 's/^["'\'']//' | sed 's/["'\'']$//')
-              
+            fi
+            echo ""
+          done
               if [ -z "$TITLE" ]; then
                 echo "⚠️  Warning: No title found in $(basename "$post")"
                 continue
