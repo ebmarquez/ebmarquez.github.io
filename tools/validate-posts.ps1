@@ -41,10 +41,10 @@ foreach ($post in $posts) {
                 $postDate = [DateTime]::Parse("$datePart $timePart")
                 
                 # Parse timezone offset
-                $offsetHours = [int]($offsetPart.Substring(1,2))
-                $offsetMins = [int]($offsetPart.Substring(3,2))
+                $offsetHours = [int]($offsetPart.Substring(1, 2))
+                $offsetMins = [int]($offsetPart.Substring(3, 2))
                 $totalOffset = $offsetHours * 60 + $offsetMins
-                if ($offsetPart[0] -eq '-') { $totalOffset = -$totalOffset }
+                if ($offsetPart[0] -eq '-') { $totalOffset = - $totalOffset }
                 
                 # Convert to UTC
                 $postUTC = $postDate.AddMinutes(-$totalOffset)

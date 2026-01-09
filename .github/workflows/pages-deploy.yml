@@ -53,13 +53,13 @@ jobs:
       - name: Validate post dates
         run: |
           echo "🔍 Checking post timestamps for potential publish issues..."
-          
+
           # Get current time in UTC
           CURRENT_UTC=$(date -u +%s)
-          
+
           # Check all posts in _posts directory
           POST_ISSUES=0
-          
+
           for post in _posts/*.md; do
             if [ ! -f "$post" ]; then
               continue
@@ -95,7 +95,7 @@ jobs:
               POST_ISSUES=$((POST_ISSUES + 1))
             fi
           done
-          
+
           if [ $POST_ISSUES -gt 0 ]; then
             echo ""
             echo "⚠️  Found $POST_ISSUES post(s) with potential timestamp issues"
@@ -134,3 +134,110 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  verify:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for deployment to propagate
+        run: |
+          echo "⏳ Waiting 30 seconds for GitHub Pages to update..."
+          sleep 30
+
+      - name: Verify posts in RSS feed
+        run: |
+          echo "🔍 Verifying published posts in RSS feed..."
+
+          FEED_URL="https://ebmarquez.github.io/feed.xml"
+          MAX_ATTEMPTS=5
+          ATTEMPT=1
+
+          # Get the 5 most recent posts (feed only shows 5)
+          RECENT_POSTS=$(ls -t _posts/*.md | head -5)
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            
+            # Fetch the RSS feed
+            FEED_CONTENT=$(curl -sL "$FEED_URL")
+            
+            if [ -z "$FEED_CONTENT" ]; then
+              echo "❌ ERROR: Failed to fetch feed.xml"
+              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                exit 1
+              fi
+              echo "⏳ Waiting 30 seconds before retry..."
+              sleep 30
+              ATTEMPT=$((ATTEMPT + 1))
+              continue
+            fi
+            
+            echo "✅ Successfully fetched feed.xml"
+            echo ""
+            
+            # Check only the 5 most recent posts
+            POST_COUNT=0
+            MISSING_COUNT=0
+            MISSING_POSTS=""
+            
+            for post in $RECENT_POSTS; do
+              if [ ! -f "$post" ]; then
+                continue
+              fi
+              
+              POST_COUNT=$((POST_COUNT + 1))
+              
+              # Extract title from frontmatter
+              TITLE=$(grep -E '^title:\s*' "$post" | head -1 | sed 's/title:\s*//' | sed 's/^["'\'']//' | sed 's/["'\'']$//')
+              
+              if [ -z "$TITLE" ]; then
+                echo "⚠️  Warning: No title found in $(basename "$post")"
+                continue
+              fi
+              
+              # Check if title appears in feed
+              if echo "$FEED_CONTENT" | grep -q "$TITLE"; then
+                echo "✅ Found: $TITLE"
+              else
+                echo "❌ MISSING: $TITLE (from $(basename "$post"))"
+                MISSING_COUNT=$((MISSING_COUNT + 1))
+                MISSING_POSTS="$MISSING_POSTS\n  - $TITLE"
+              fi
+            done
+            
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📊 Summary (Attempt $ATTEMPT):"
+            echo "   Recent posts checked: $POST_COUNT"
+            echo "   Found in feed: $((POST_COUNT - MISSING_COUNT))"
+            echo "   Missing from feed: $MISSING_COUNT"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            
+            if [ $MISSING_COUNT -eq 0 ]; then
+              echo ""
+              echo "🎉 All recent posts verified in RSS feed!"
+              exit 0
+            else
+              echo ""
+              echo "⚠️  Missing posts:$(echo -e "$MISSING_POSTS")"
+              
+              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                echo ""
+                echo "❌ FAILED: After $MAX_ATTEMPTS attempts, posts are still missing from feed"
+                exit 1
+              else
+                echo ""
+                echo "⏳ Waiting 30 seconds before retry..."
+                sleep 30
+                ATTEMPT=$((ATTEMPT + 1))
+              fi
+            fi
+          done
