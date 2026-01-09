@@ -27,7 +27,7 @@ function Test-BlogPost {
     }
     
     $dateLine = ""
-    if ($matches[1] -match '(?m)^date:\s*(.+)$') {
+    if ($matches[1] -match 'date:\s*(.+)$') {
         $dateLine = $matches[1].Trim()
         if ($dateLine -notmatch '[-+]\d{4}') {
             $issues += "Missing timezone"
@@ -48,18 +48,7 @@ function Test-BlogPost {
     }
 }
 
-function Repair-BlogPost {
-    param([hashtable]$ValidationResult)
-    $content = $ValidationResult.Content
-    $currentOffset = Get-CurrentPacificOffset
-    $content = $content -replace '(date:\s*\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+)[-+]\d{4}', "`$1$currentOffset"
-    Set-Content -Path $ValidationResult.FilePath -Value $content -NoNewline
-    Write-Host "  FIXED timezone to $currentOffset" -ForegroundColor Green
-}
-
-Write-Host ""
-Write-Host "Blog Post Timezone Validator" -ForegroundColor Cyan
-Write-Host ""
+Write-Host "`n🔍 Blog Post Timezone Validator`n" -ForegroundColor Cyan
 
 if ($PostFile) {
     $filesToCheck = @($PostFile)
@@ -67,26 +56,18 @@ if ($PostFile) {
     $filesToCheck = Get-ChildItem -Path $POSTS_DIR -Filter "*.md" | Select-Object -ExpandProperty FullName
 }
 
-Write-Host "Checking $($filesToCheck.Count) blog post(s)..." -ForegroundColor Cyan
-Write-Host ""
-
 foreach ($file in $filesToCheck) {
     $result = Test-BlogPost -FilePath $file
     if ($result.Valid) {
-        Write-Host "PASS: $($result.File)" -ForegroundColor Green
+        Write-Host "✓ $($result.File)" -ForegroundColor Green
         Write-Host "  Date: $($result.DateLine)"
     } else {
-        Write-Host "FAIL: $($result.File)" -ForegroundColor Red
+        Write-Host "✗ $($result.File)" -ForegroundColor Red
         Write-Host "  Date: $($result.DateLine)"
         foreach ($issue in $result.Issues) {
-            Write-Host "  WARNING: $issue" -ForegroundColor Yellow
-        }
-        if ($Fix) {
-            Repair-BlogPost -ValidationResult $result
+            Write-Host "  ⚠️  $issue" -ForegroundColor Yellow
         }
     }
 }
 
-Write-Host ""
-Write-Host "Done!" -ForegroundColor Cyan
-Write-Host ""
+Write-Host "`nDone!`n" -ForegroundColor Cyan
