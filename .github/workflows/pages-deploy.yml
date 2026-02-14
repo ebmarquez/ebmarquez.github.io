@@ -157,8 +157,8 @@ jobs:
           MAX_ATTEMPTS=5
           ATTEMPT=1
 
-          # Get the most recent post only
-          LATEST_POST=$(ls -t _posts/*.md | head -1)
+          # Get the most recent post by filename date (not filesystem mtime which is unreliable after git clone)
+          LATEST_POST=$(ls _posts/*.md | sort -r | head -1)
 
           if [ ! -f "$LATEST_POST" ]; then
             echo "❌ ERROR: No posts found in _posts directory"
@@ -222,47 +222,4 @@ jobs:
               fi
             fi
             echo ""
-          done
-              if [ -z "$TITLE" ]; then
-                echo "⚠️  Warning: No title found in $(basename "$post")"
-                continue
-              fi
-              
-              # Check if title appears in feed
-              if echo "$FEED_CONTENT" | grep -q "$TITLE"; then
-                echo "✅ Found: $TITLE"
-              else
-                echo "❌ MISSING: $TITLE (from $(basename "$post"))"
-                MISSING_COUNT=$((MISSING_COUNT + 1))
-                MISSING_POSTS="$MISSING_POSTS\n  - $TITLE"
-              fi
-            done
-            
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "📊 Summary (Attempt $ATTEMPT):"
-            echo "   Recent posts checked: $POST_COUNT"
-            echo "   Found in feed: $((POST_COUNT - MISSING_COUNT))"
-            echo "   Missing from feed: $MISSING_COUNT"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            
-            if [ $MISSING_COUNT -eq 0 ]; then
-              echo ""
-              echo "🎉 All recent posts verified in RSS feed!"
-              exit 0
-            else
-              echo ""
-              echo "⚠️  Missing posts:$(echo -e "$MISSING_POSTS")"
-              
-              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-                echo ""
-                echo "❌ FAILED: After $MAX_ATTEMPTS attempts, posts are still missing from feed"
-                exit 1
-              else
-                echo ""
-                echo "⏳ Waiting 30 seconds before retry..."
-                sleep 30
-                ATTEMPT=$((ATTEMPT + 1))
-              fi
-            fi
           done
