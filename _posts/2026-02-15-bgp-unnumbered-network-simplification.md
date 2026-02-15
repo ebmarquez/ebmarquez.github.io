@@ -6,9 +6,6 @@ categories: [networking]
 tags: [bgp, unnumbered, loopback, spine-leaf, cisco, dell, lab, data-center]
 author: Eric Marquez
 description: "How BGP unnumbered with loopback peering simplifies spine-leaf fabric operations at scale."
-image:
-  path: 
-  alt: "BGP unnumbered spine-leaf network diagram"
 ---
 
 You just got approval for a build. Maybe it's 5 racks. Maybe it's 20. Servers are racked, power is connected, and now someone turns to you and says: "So how are we networking all of this?"
