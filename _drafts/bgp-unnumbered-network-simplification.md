@@ -1,156 +1,178 @@
 ---
 layout: post
 title: "BGP Unnumbered: The Network Simplification You Didn't Know You Needed"
-date: 2026-02-14 12:00:00 -0800
-categories: [networking, azure-local]
-tags: [bgp, unnumbered, loopback, spine-leaf, azure-local, cisco, dell]
+date: 2026-02-15 12:00:00 -0800
+categories: [networking]
+tags: [bgp, unnumbered, loopback, spine-leaf, cisco, dell]
 author: Eric Marquez
-description: "How BGP unnumbered with loopback peering eliminates IP address management overhead and simplifies spine-leaf fabric operations at scale."
+description: "How BGP unnumbered with loopback peering eliminates IP address management overhead and simplifies spine-leaf fabric operations."
 image:
   path: 
   alt: "BGP unnumbered network diagram"
 ---
 
-# BGP Unnumbered: The Network Simplification You Didn't Know You Needed
+Every network engineer has been there. You're building out a spine-leaf fabric and suddenly you're staring at a spreadsheet with dozens of point-to-point /31 links. Each one needs an IP address. Each one needs documentation. Each one is another thing to fat-finger at 2 AM.
 
-<!-- Riley voice: Hook 'em early, keep it real, make networking fun -->
+What if you could just... not?
 
-## The IP Address Tax Nobody Talks About
+Welcome to **BGP unnumbered** — the networking equivalent of realizing you've been doing it the hard way this whole time.
 
-Every network engineer has been there. You're building out a spine-leaf fabric — maybe 64 nodes, maybe more — and suddenly you're staring at a spreadsheet with hundreds of point-to-point /31 links. Each one needs an IP address. Each one needs documentation. Each one is another thing to fat-finger at 2 AM.
+## The IP Address Tax
 
-What if I told you there's a way to just... not?
+Traditional spine-leaf fabrics charge an invisible tax. Every point-to-point link between a leaf and a spine needs a /31 subnet. Two IP addresses per link, one on each side. That's the deal.
 
-Welcome to **BGP unnumbered** — the networking equivalent of "why were we doing it the hard way this whole time?"
+For a modest fabric — say 4 leaf switches and 2 spines — that's 8 point-to-point links and 16 IP addresses just for the underlay. Scale it up to 16 leaves and you're managing 64+ link addresses before you've even configured a single tenant.
+
+Now multiply that by the human cost:
+
+- **Planning** — IP allocation spreadsheets, subnet reservations, IPAM entries
+- **Configuration** — neighbor statements referencing specific IPs on both sides
+- **Documentation** — diagrams labeling every link with addresses
+- **Troubleshooting** — "which /31 goes to which link again?"
+- **Fat-finger risk** — transpose two digits and enjoy your 3 AM troubleshooting session
+
+That's the tax. And BGP unnumbered eliminates most of it.
 
 ## What Is BGP Unnumbered?
 
-<!-- Mike's technical context: BGP unnumbered uses IPv6 link-local addresses (fe80::/10) 
-     to establish BGP sessions over point-to-point links without assigning IPv4/IPv6 
-     global addresses to the interfaces. Peers are identified by interface, not IP. -->
-
 Traditional BGP peering requires both sides to have configured IP addresses. You assign a /31 to each link, configure the neighbor statement with the remote IP, and pray you didn't transpose two digits.
 
-BGP unnumbered flips this on its head:
+BGP unnumbered flips this:
 
-- **No IP addresses on point-to-point links** — interfaces use IPv6 link-local addresses automatically
-- **Neighbor by interface, not by IP** — `neighbor interface ethernet 1/1/6` instead of `neighbor 10.1.1.1`
-- **Loopback-based peering** — all your real routing happens over loopback addresses that never change
+- **No IP addresses on point-to-point links** — interfaces use IPv6 link-local addresses (fe80::/10) that are auto-generated
+- **Neighbor by interface, not by IP** — the switch discovers its peer automatically
+- **Loopback-based identity** — each switch gets one loopback IP, and that's its identity in the fabric
 
-### The Loopback Connection
+### The Loopback Is the Only IP That Matters
 
-Here's the key insight: your **loopback addresses are the only IPs that matter**. Every switch gets one loopback IP (like `10.0.0.1/32`), and that becomes its identity. The actual fabric links between switches? They're just plumbing — they don't need their own addresses.
+Here's the key insight: your **loopback addresses are the only IPs that matter**. Every switch gets one loopback (like `10.0.0.1/32`), and that becomes its router-id, its VTEP source, its management identity. The physical links between switches? They're just plumbing.
 
 Think of it like this: your loopback is your phone number. The physical links between switches are hallways in a building. You don't assign phone numbers to hallways.
 
-## Why This Changes Everything at 64 Nodes
+## The Math
 
-<!-- Context: Azure Local 64-node cluster with Cisco N9K spines + Dell S5248F leaves -->
+Let's compare a fabric with 8 leaf switches and 2 spines (16 point-to-point links):
 
-Let's do some math on a 64-node Azure Local deployment:
+**Traditional numbered BGP:**
 
-### Traditional Numbered BGP
+- 16 point-to-point links × 2 IPs each = **32 link addresses**
+- 10 loopback addresses (one per switch)
+- 16+ explicit neighbor statements with specific IPs
+- Total IPs to manage: **42**
 
-| Item | Count |
-|------|-------|
-| Leaf switches | ~32 pairs |
-| Spine switches | 2-4 |
-| Point-to-point links | ~128+ |
-| /31 subnets needed | ~128+ |
-| IP addresses to manage | ~256+ |
-| Neighbor statements with IPs | ~256+ |
+**BGP unnumbered:**
 
-That's **256+ IP addresses** you need to plan, document, configure, and troubleshoot. Miss one? Enjoy your troubleshooting session.
+- Point-to-point link addresses: **0**
+- 10 loopback addresses (one per switch)
+- Neighbor statements: interface-based (no IPs needed)
+- Total IPs to manage: **10**
 
-### BGP Unnumbered
-
-| Item | Count |
-|------|-------|
-| Loopback IPs needed | ~36 (one per switch) |
-| Point-to-point IPs needed | **0** |
-| Neighbor statements | Interface-based (auto) |
-| IP planning spreadsheet rows eliminated | **220+** |
-
-That's not a minor optimization. That's **deleting an entire category of work**.
+That's not a minor optimization. That's **deleting an entire category of work**. And it scales linearly — the bigger the fabric, the more you save.
 
 ## What You Actually Configure
 
-### Dell OS10 Leaf (S5248F-ON)
+### Cisco NX-OS (N9K Spine or Leaf)
+
+NX-OS 10.6+ supports BGP unnumbered via prefix-based peers on point-to-point interfaces. The interfaces run with `medium p2p` and `ip unnumbered loopback0`:
 
 ```text
+! Loopback — the only IP this switch needs
+interface loopback0
+  ip address 10.0.0.1/32
+
+! Fabric uplink — no IP address assigned
+interface ethernet 1/49
+  description to-spine-1
+  no switchport
+  medium p2p
+  ip unnumbered loopback0
+  no shutdown
+
 router bgp 65001
   router-id 10.0.0.1
 
-  ! No IP address on the interface — just peer by interface name
-  neighbor interface ethernet 1/1/49
-    no shutdown
-
-  neighbor interface ethernet 1/1/50
-    no shutdown
+  ! Peer with spine loopback — clean, stable
+  neighbor 10.0.0.10
+    remote-as 65100
+    update-source loopback0
+    address-family ipv4 unicast
 ```
 
-That's it. No `neighbor 10.x.x.x remote-as 65100`. No IP address assignment on the uplinks. The switch figures it out using IPv6 link-local addresses under the hood.
+No /31 on the link. No `neighbor 10.1.1.x`. The physical interface borrows its identity from the loopback.
 
-### Cisco NX-OS Spine (N9K-9336C-FX2)
+### Dell OS10 (S5248F-ON Leaf)
+
+Dell OS10 takes it a step further with interface-based neighbor discovery:
 
 ```text
-router bgp 65100
-  router-id 10.0.0.10
-  
-  ! Loopback for overlay peering
-  neighbor 10.0.0.1
-    remote-as 65001
-    update-source loopback0
-    address-family l2vpn evpn
-      send-community both
-      route-reflector-client
+! Loopback
+interface loopback0
+  ip address 10.0.0.1/32
+
+! Fabric uplink — peer by interface name
+interface ethernet 1/1/49
+  no switchport
+  no shutdown
+
+router bgp 65001
+  router-id 10.0.0.1
+
+  ! Neighbor by interface — no IP needed at all
+  neighbor interface ethernet 1/1/49
+    no shutdown
 ```
 
-The spine peers with leaf loopbacks for the EVPN overlay — clean, stable, and the loopback never goes down unless the whole switch does.
+That's it. No IP address assignment on the uplinks. The switch figures it out using IPv6 link-local addresses under the hood.
 
 ## The Simplification Cascade
 
-This isn't just about saving IP addresses. BGP unnumbered triggers a cascade of simplifications:
+Removing link IPs triggers a cascade of operational wins that extends well beyond address management:
 
-### 1. IP Address Management (IPAM) — Simplified
-- No more /31 allocation spreadsheets for fabric links
-- Only loopbacks need IPAM entries
-- Fewer DNS records, fewer firewall rules
+### Configuration Templates Become Cookie-Cutter
 
-### 2. Configuration Templates — Cleaner
-- Fabric link configs become cookie-cutter identical
-- Interface-based neighbors mean less per-switch customization
-- Easier to automate with NSO/Ansible
+With numbered BGP, every link is unique — different /31, different neighbor IP. With unnumbered, fabric link configs are **identical across switches**. Change the loopback and the AS number, and you're done. This makes automation with tools like Ansible or Cisco NSO dramatically simpler.
 
-### 3. Troubleshooting — Faster
-- Fewer moving parts = fewer things to break
-- `show bgp neighbors` maps directly to physical interfaces
-- No "which /31 goes to which link?" confusion
+### Troubleshooting Gets Faster
 
-### 4. Day 2 Operations — Easier
-- Adding a new leaf? Just cable it and configure the interface neighbor
-- No IP planning required for the physical link
-- Loopback is the only thing you need to allocate
+Fewer moving parts, fewer things to break. `show bgp neighbors` maps directly to physical interfaces — no more cross-referencing IP addresses against your spreadsheet. When a peer drops, you know exactly which cable to look at.
 
-### 5. Documentation — Lighter
-- Network diagrams don't need IP labels on every link
-- Runbooks shrink significantly
-- New engineers onboard faster
+### Day 2 Operations Get Easier
 
-## The Trade-offs (Because There Are Always Trade-offs)
+Adding a new leaf switch? Cable it to the spines, assign a loopback, configure the interface neighbors. No IP planning for the physical links. No updating the allocation spreadsheet. No coordinating with the IPAM team.
 
-<!-- Mike would insist on covering these -->
+### Documentation Gets Lighter
 
-BGP unnumbered isn't magic — it has considerations:
+Network diagrams don't need IP labels on every link. Runbooks shrink. New engineers onboard faster because there's less to memorize.
 
-- **Platform support**: Not all vendors/versions support it equally. Dell OS10 and Cisco NX-OS 10.6+ handle it well. Older firmware? Check your release notes.
-- **IPv6 dependency**: It uses IPv6 link-local under the hood. If you've been avoiding IPv6, surprise — it's been helping you all along.
-- **Troubleshooting mindset shift**: Engineers used to `ping 10.1.1.1` need to adapt to `show bgp neighbors` by interface.
-- **Mixed environments**: If you're mixing unnumbered and numbered peers, the `link-local-only-nexthop` behavior needs careful attention (especially Dell OS10 ↔ Cumulus/FRR interop).
+## The Trade-Offs
+
+BGP unnumbered isn't magic — it has considerations worth knowing:
+
+- **Platform support varies.** Cisco NX-OS 10.6+ and Dell OS10 handle it well. Older firmware may not support it, or may support it with caveats. Check your release notes.
+- **IPv6 runs under the hood.** The mechanism uses IPv6 link-local addresses for neighbor discovery. If your environment has IPv6 disabled at the hardware level, you'll need to enable it on fabric-facing interfaces.
+- **Troubleshooting mindset shift.** Engineers used to `ping 10.1.1.1` to verify a link need to adapt. `show bgp neighbors` by interface becomes the primary tool.
+- **Mixed environments need care.** If you're mixing unnumbered and numbered peers in the same fabric, or interoperating between vendors (Dell OS10 ↔ Cumulus/FRR), pay attention to `link-local-only-nexthop` behavior and next-hop resolution.
+- **Not for every topology.** BGP unnumbered works best on point-to-point links in a spine-leaf design. Multi-access segments or legacy topologies may still need numbered peers.
+
+## When to Use It
+
+BGP unnumbered is the right choice when:
+
+- You're building a **spine-leaf fabric** with point-to-point links between tiers
+- You want to **minimize configuration differences** between switches
+- You're scaling beyond a handful of switches and the IP management overhead is real
+- You're using **VXLAN/EVPN** and need a clean underlay that gets out of the way
+- You value **operational simplicity** over familiarity with the traditional approach
+
+It's not the right choice when:
+
+- You need numbered peers for policy reasons (some compliance frameworks require it)
+- Your hardware or firmware doesn't support it
+- You're running a legacy three-tier or hub-and-spoke topology
 
 ## The Bottom Line
 
-At 64 nodes, BGP unnumbered with loopback peering isn't a nice-to-have — it's how you stay sane. You're eliminating hundreds of IP addresses, simplifying your templates, and making Day 2 operations actually manageable.
+BGP unnumbered with loopback peering removes the largest source of configuration errors in spine-leaf fabrics: mismatched point-to-point IP addresses. What's left is a clean underlay where every switch is identified by a single loopback IP, fabric links are anonymous plumbing, and scaling means adding switches — not spreadsheet rows.
 
 Less infrastructure to maintain. Less documentation to keep current. Less surface area for human error.
 
@@ -158,15 +180,4 @@ Sometimes the best engineering is removing things.
 
 ---
 
-*Working on the Azure Local 64-node architecture? Check out the [network switch knowledgebase](https://github.com/microsoft/network-switch-knowledgebase) for Dell OS10 and Cisco NX-OS configuration guides.*
-
-<!-- 
-DRAFT NOTES:
-- [ ] Add actual lab screenshots/outputs
-- [ ] Include show command verification examples  
-- [ ] Get specific numbers from 64-node deployment
-- [ ] Add diagram (spine-leaf with loopback IPs only, no link IPs)
-- [ ] Review with Mike for technical accuracy
-- [ ] Consider adding NX-OS unnumbered config example
-- [ ] Reference Azure Local specific requirements
--->
+*For vendor-specific BGP and VXLAN configuration guides, check out the [network switch knowledgebase](https://github.com/microsoft/network-switch-knowledgebase) covering Cisco NX-OS and Dell OS10.*
