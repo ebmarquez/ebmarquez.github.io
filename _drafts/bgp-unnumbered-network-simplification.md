@@ -185,11 +185,13 @@ It's not magic. Know the edges:
 
 ## When to Use It
 
-BGP unnumbered is the right call when you're building a **spine-leaf fabric** with point-to-point links — whether that's 2 racks or 20. It scales without adding per-link complexity:
+If you're typing `router bgp`, use unnumbered. This isn't a scale question — it's a complexity question. BGP unnumbered isn't more complex than numbered. It's actually simpler. Even with 2 switches and a single point-to-point link, the unnumbered config is cleaner: no /31 to plan, no neighbor IP to match, no opportunity to fat-finger. The only reason to choose numbered on a new build is legacy firmware that doesn't support it.
+
+Whether you're building 2 racks or 20, the benefits are the same:
 
 - You want **repeatable, templatized configs** that scale without per-link customization
 - You're running **VXLAN/EVPN** and need a clean underlay that stays out of the way
-- You value **speed of deployment** over doing it the traditional way
+- You value **less complexity** over doing it the traditional way
 
 ## The Bottom Line
 
