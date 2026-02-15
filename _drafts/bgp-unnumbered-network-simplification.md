@@ -185,19 +185,11 @@ It's not magic. Know the edges:
 
 ## When to Use It
 
-BGP unnumbered is the right call when:
+BGP unnumbered is the right call when you're building a **spine-leaf fabric** with point-to-point links — whether that's 2 racks or 20. It scales without adding per-link complexity:
 
-- You're building a **spine-leaf fabric** with point-to-point links
-- You have **5+ racks** and the IP management overhead is becoming real
 - You want **repeatable, templatized configs** that scale without per-link customization
 - You're running **VXLAN/EVPN** and need a clean underlay that stays out of the way
 - You value **speed of deployment** over doing it the traditional way
-
-It's probably not the right call when:
-
-- Compliance requires numbered peers with documented /31 allocations
-- Your hardware or firmware doesn't support it
-- You're running a flat or three-tier topology without point-to-point links
 
 ## The Bottom Line
 
