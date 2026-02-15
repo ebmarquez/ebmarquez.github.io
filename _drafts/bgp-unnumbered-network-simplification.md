@@ -155,7 +155,7 @@ Labs aren't static. You add 3 racks this quarter, decommission 2 next quarter, r
 
 ### Templates Are Your Friend
 
-When every leaf config follows the same pattern — change the loopback, change the ASN, done — you can template the entire thing. Generate configs from a simple YAML file listing switch names and loopbacks. Ansible, Cisco NSO, Python scripts — whatever your tool, the config generation becomes trivial because there are no per-link unique values.
+When every leaf config follows the same pattern — change the loopback, change the ASN, done — you can template the entire thing. Generate configs from a simple YAML file listing switch names and loopbacks. Ansible, Cisco NSO, Terraform, Python scripts — whatever your tool, the config generation becomes trivial because there are no per-link unique values.
 
 ### Mistakes Are Expensive at 2 AM
 
