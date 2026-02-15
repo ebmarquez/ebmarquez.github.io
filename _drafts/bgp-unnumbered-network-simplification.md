@@ -41,6 +41,8 @@ Now scale it to a real lab environment:
 
 That's 320 IP addresses that serve no purpose other than establishing BGP sessions. They don't carry user traffic. They don't show up in your monitoring dashboards. They just exist so two switches can say hello to each other — and each one is an opportunity to fat-finger a digit during a late-night deployment push.
 
+That's 320 perfectly good IPv4 addresses burning a hole in your IPAM for links that never leave the rack. Meanwhile, the rest of the internet is rationing addresses like it's the end times. ARIN would like a word.
+
 This is the IP address tax, and at lab scale, it's brutal.
 
 ## What BGP Unnumbered Actually Does
