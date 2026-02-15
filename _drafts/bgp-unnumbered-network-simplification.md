@@ -202,5 +202,3 @@ The switches don't care about the IPs on those links. Your monitoring doesn't qu
 Sometimes the best engineering is removing things.
 
 ---
-
-*For vendor-specific BGP and VXLAN configuration guides, check out the [network switch knowledgebase](https://github.com/microsoft/network-switch-knowledgebase) covering Cisco NX-OS and Dell OS10.*
