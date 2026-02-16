@@ -4,7 +4,7 @@ title: "When Git Gaslights You: The Line Ending Betrayal"
 date: 2026-01-09 00:00:00 -0800
 categories: [development, git]
 tags: [git, development, troubleshooting, windows, cross-platform, version-control, devops]
-author: Eric Marquez
+author: ebmarquez
 description: "That moment when git reset --hard does nothing and files stay modified. A deep dive into solving the Git line ending mystery that haunts cross-platform teams."
 image:
   path: https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=1200&q=80
