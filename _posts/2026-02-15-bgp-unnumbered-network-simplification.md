@@ -4,7 +4,7 @@ title: "BGP Unnumbered: The Network Simplification You Didn't Know You Needed"
 date: 2026-02-15 12:00:00 -0800
 categories: [networking]
 tags: [bgp, unnumbered, loopback, spine-leaf, cisco, dell, lab, data-center]
-author: Eric Marquez
+author: ebmarquez
 description: "How BGP unnumbered with loopback peering simplifies spine-leaf fabric operations at scale."
 image:
   path: https://images.unsplash.com/photo-1611458183579-f14ea361f798?w=1200&q=80

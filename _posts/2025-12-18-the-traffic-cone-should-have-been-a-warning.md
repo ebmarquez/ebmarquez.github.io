@@ -3,7 +3,7 @@ layout: post
 title: "The Traffic Cone Should Have Been a Warning"
 date: 2025-12-18 09:00:00 -0800
 category: travel
-author: Eric Marquez
+author: ebmarquez
 tags: 
   - travel
   - airlines
