@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="draw.io" modified="2026-03-06" agent="Copilot" version="29.5.2">
+  <diagram id="physical-trunk-topology" name="Physical Trunk Topology">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;Azure Local Physical Trunk Topology&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="600" height="40" as="geometry"/>
+        </mxCell>
+        <!-- Core Switch -->
+        <mxCell id="core" value="&lt;b&gt;Core Switch&lt;/b&gt;&lt;br&gt;(L3 Gateway)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=0;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="550" y="80" width="300" height="60" as="geometry"/>
+        </mxCell>
+        <!-- ToR Switch 1 -->
+        <mxCell id="tor1" value="&lt;b&gt;ToR Switch 1&lt;/b&gt;&lt;br&gt;Cisco Nexus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=0;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="300" y="240" width="250" height="60" as="geometry"/>
+        </mxCell>
+        <!-- ToR Switch 2 -->
+        <mxCell id="tor2" value="&lt;b&gt;ToR Switch 2&lt;/b&gt;&lt;br&gt;Cisco Nexus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=0;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="850" y="240" width="250" height="60" as="geometry"/>
+        </mxCell>
+        <!-- Host 1 -->
+        <mxCell id="host1" value="&lt;b&gt;Host 1&lt;/b&gt;&lt;br&gt;Azure Local Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=0;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="250" y="440" width="250" height="60" as="geometry"/>
+        </mxCell>
+        <!-- Host 2 -->
+        <mxCell id="host2" value="&lt;b&gt;Host 2&lt;/b&gt;&lt;br&gt;Azure Local Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=0;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="900" y="440" width="250" height="60" as="geometry"/>
+        </mxCell>
+        <!-- Core to ToR1 uplink -->
+        <mxCell id="core-tor1" value="Po126 / Trunk — All VLANs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=3;fontSize=11;fontColor=#82b366;fontStyle=1;" edge="1" parent="1" source="core" target="tor1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Core to ToR2 uplink -->
+        <mxCell id="core-tor2" value="Po126 / Trunk — All VLANs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=3;fontSize=11;fontColor=#82b366;fontStyle=1;" edge="1" parent="1" source="core" target="tor2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- ToR1 to Host1 (port 0) -->
+        <mxCell id="tor1-host1" value="Port 1 — Trunk&#xa;Native VLAN 2 / MTU 9216" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=10;fontColor=#6c8ebf;" edge="1" parent="1" source="tor1" target="host1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- ToR2 to Host1 (port 1) -->
+        <mxCell id="tor2-host1" value="Port 1 — Trunk&#xa;Native VLAN 2 / MTU 9216" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=10;fontColor=#6c8ebf;" edge="1" parent="1" source="tor2" target="host1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- ToR1 to Host2 (port 0) -->
+        <mxCell id="tor1-host2" value="Port 2 — Trunk" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=10;fontColor=#6c8ebf;" edge="1" parent="1" source="tor1" target="host2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- ToR2 to Host2 (port 1) -->
+        <mxCell id="tor2-host2" value="Port 2 — Trunk" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=10;fontColor=#6c8ebf;" edge="1" parent="1" source="tor2" target="host2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Legend -->
+        <mxCell id="legend-title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;align=left;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="50" y="600" width="100" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-uplink" value="Uplink (Port-Channel)" style="text;html=1;align=left;fontSize=11;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="80" y="630" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-host" value="Host Link (Individual Trunk)" style="text;html=1;align=left;fontSize=11;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="655" width="250" height="25" as="geometry"/>
+        </mxCell>
+        <!-- Host1 label -->
+        <mxCell id="host1-label" value="Port 0 → ToR1&lt;br&gt;Port 1 → ToR2&lt;br&gt;&lt;i&gt;Dual-homed, no LACP&lt;/i&gt;" style="text;html=1;align=center;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="260" y="510" width="230" height="50" as="geometry"/>
+        </mxCell>
+        <!-- Host2 label -->
+        <mxCell id="host2-label" value="Port 0 → ToR1&lt;br&gt;Port 1 → ToR2&lt;br&gt;&lt;i&gt;Dual-homed, no LACP&lt;/i&gt;" style="text;html=1;align=center;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="910" y="510" width="230" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
