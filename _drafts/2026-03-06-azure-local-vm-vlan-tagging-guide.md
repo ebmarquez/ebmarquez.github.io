@@ -5,23 +5,25 @@ date: 2026-03-06 00:00:00 -0800
 categories: [networking, azure-local]
 tags: [azure-local, hyper-v, vlan, trunking, vswitch, sriov, netintent, vm-networking]
 author: ebmarquez
-description: "Azure Local VMs in VLAN trunk mode work on one host but fail cross-host. Here's why Access mode with multiple vNICs is the correct pattern."
+description: "Azure Local tenant VMs in VLAN trunk mode work on one host but fail cross-host. Here's why Access mode with multiple vNICs is the correct pattern for tenant workloads."
 image:
   path: /assets/img/azure-local-vm-vlan-tagging/01-physical-trunk-topology.png
   alt: "Diagram showing host-to-ToR trunk topology in an Azure Local cluster"
 ---
 
-You've got a VM on Azure Local that needs to talk on VLAN 4. You configure the VM NIC in trunk mode, set up a VLAN sub-interface inside the guest, and test. It works — but only when the other VM is on the same host. The moment you try to reach a VM on a different host, nothing. ARP requests leave, but replies never come back.
+You've got a tenant VM on Azure Local that needs to talk on VLAN 4. You see the ToR switch port is a trunk carrying multiple VLANs, so you configure the VM NIC in trunk mode, set up a VLAN sub-interface inside the guest, and test. It works — but only when the other VM is on the same host. The moment you try to reach a VM on a different host, nothing. ARP requests leave, but replies never come back.
 
-This keeps coming up. It's one of the most common networking misconfigurations in Azure Local environments, and it's not obvious why it fails. The mental model from physical networking doesn't map cleanly to how Azure Local handles VLAN tagging.
+This keeps coming up, specifically with **tenant workloads**. In a typical Azure Local deployment, management traffic rides the native VLAN (untagged) and just works. But when customers need tenant VMs on tagged VLANs, they see those trunk ports on the ToR and assume the VM needs to do its own VLAN tagging. It doesn't — and that assumption is where things break.
 
-Let's fix that.
+Let's fix that mental model.
 
 ## The Physical Trunk — Quick Refresher
 
 Before we touch virtualization, let's ground ourselves in how physical trunking works. If you already live in this world, skip ahead.
 
-In a typical Azure Local deployment, each host connects to two Top-of-Rack (ToR) switches. These links carry **multiple VLANs** — management, storage, live migration, and VM workload traffic all share the same physical interfaces. That means the switch ports must be **trunk ports**, not access ports.
+In a typical Azure Local deployment, each host connects to two Top-of-Rack (ToR) switches. These links carry **multiple VLANs** — management, storage, live migration, and tenant VM traffic all share the same physical interfaces. That means the switch ports must be **trunk ports**.
+
+The important distinction: **management traffic uses the native VLAN** (untagged on the wire), while **tenant VLANs are tagged**. The switch handles both on the same trunk port — native VLAN for management, 802.1Q tags for everything else.
 
 ![Physical trunk topology showing hosts dual-homed to two ToR switches](/assets/img/azure-local-vm-vlan-tagging/01-physical-trunk-topology.png)
 _Each host is dual-homed to two ToR switches. All host-facing ports are trunks carrying multiple VLANs._
@@ -41,10 +43,11 @@ Key points:
 
 - **Trunk mode** means the port sends and receives 802.1Q tagged frames
 - **Allowed VLANs** restrict which VLANs can traverse this link
-- **Native VLAN** handles untagged traffic — anything without a tag gets assigned to VLAN 2
+- **Native VLAN 2** is management — this traffic is untagged on the wire and just works
+- **VLANs 4, 10, 20** are tenant VLANs — these are the tagged VLANs where the tagging question matters
 - The host-to-switch link is always a trunk because multiple traffic types share it
 
-This is straightforward. The complexity starts when you add the Hyper-V virtual switch into the picture.
+This is where the confusion starts. Admins see "trunk" on the physical port and assume tenant VMs need trunk mode too. They don't.
 
 ## The Three Hyper-V VLAN Modes
 
@@ -61,7 +64,7 @@ Set-VMNetworkAdapterVlan -VMName 'myVM' -Untagged
 
 The VM sends plain Ethernet frames. The vSwitch passes them through without modification. On the wire, they arrive at the switch **untagged**, and the switch assigns them to whatever native VLAN is configured on that trunk port.
 
-Use this when the VM only needs to be on the native VLAN and the switch port handles everything.
+This is how **management traffic** works on Azure Local — it rides the native VLAN without any VLAN configuration on the VM. For tenant workloads that need a specific VLAN, you need one of the next two modes.
 
 ### Mode 2: Access (Recommended for Azure Local)
 
