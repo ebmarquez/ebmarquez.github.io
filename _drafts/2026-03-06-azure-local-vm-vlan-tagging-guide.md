@@ -33,8 +33,8 @@ The switch configuration looks like this:
 ```text
 interface Ethernet1/1
   switchport mode trunk
-  switchport trunk allowed vlan 2,4,10,20
-  switchport trunk native vlan 2
+  switchport trunk allowed vlan 7,4,10,20
+  switchport trunk native vlan 7
   mtu 9216
   no shutdown
 ```
@@ -43,7 +43,7 @@ Key points:
 
 - **Trunk mode** means the port sends and receives 802.1Q tagged frames
 - **Allowed VLANs** restrict which VLANs can traverse this link
-- **Native VLAN 2** is management — this traffic is untagged on the wire and just works
+- **Native VLAN 7** is management — this traffic is untagged on the wire and just works
 - **VLANs 4, 10, 20** are tenant VLANs — these are the tagged VLANs where the tagging question matters
 - The host-to-switch link is always a trunk because multiple traffic types share it
 
@@ -192,8 +192,8 @@ The switch configuration doesn't change. The trunk port already allows all the V
 ```text
 interface Ethernet1/1
   switchport mode trunk
-  switchport trunk allowed vlan 2,4,10,20
-  switchport trunk native vlan 2
+  switchport trunk allowed vlan 7,4,10,20
+  switchport trunk native vlan 7
   mtu 9216
   no shutdown
 ```
