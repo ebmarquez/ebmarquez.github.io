@@ -78,7 +78,7 @@ EVPN Type-2 routes bind MAC addresses to IP addresses at the control plane level
 
 Here's the physical topology I'm working with — a single-rack deployment with spine-leaf that scales to multi-rack:
 
-![Spine-leaf topology with VXLAN/EVPN overlay and vPC leaf pair](/assets/img/posts/2026-03-27/spine-leaf-topology.svg)
+![Spine-leaf topology with VXLAN/EVPN overlay and vPC leaf pair](/assets/img/posts/2026-03-27/spine-leaf-topology.png)
 
 **Key design elements:**
 
@@ -144,7 +144,7 @@ But here's the security-relevant part: **the virtual switch enforces VLAN taggin
 
 The isolation chain looks like this:
 
-![Isolation chain — VM to VRF, enforced at every hop](/assets/img/posts/2026-03-27/isolation-chain.svg)
+![Isolation chain — VM to VRF, enforced at every hop](/assets/img/posts/2026-03-27/isolation-chain.png)
 
 At every hop, the traffic is constrained:
 1. **Virtual switch** — only configured VLANs are permitted on VM adapters

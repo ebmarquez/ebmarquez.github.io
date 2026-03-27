@@ -49,7 +49,7 @@ Without VRFs, it's a warehouse — one giant open floor plan. Everyone's stuff i
 
 The key insight: **VRFs are virtual routers living inside a physical one.** Each VRF has its own routing table, its own forwarding decisions, and its own view of the network. An interface assigned to VRF "Blue" has absolutely no idea that VRF "Red" exists on the same box.
 
-![VRF isolation — three independent routing tables inside one physical switch](/assets/img/posts/2026-03-27/vrf-isolation.svg)
+![VRF isolation — three independent routing tables inside one physical switch](/assets/img/posts/2026-03-27/vrf-isolation.png)
 _Same box · Same IPs · Completely isolated_
 
 Notice that both VRFs have `10.0.1.0/24`? No problem. Each routing table is independent. No collisions, no confusion.
