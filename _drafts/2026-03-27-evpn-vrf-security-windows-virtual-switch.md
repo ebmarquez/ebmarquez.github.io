@@ -59,13 +59,12 @@ Traditional HA gateway designs (VRRP/HSRP) require multiple IPs per VLAN per swi
 
 EVPN anycast gateway eliminates all of this:
 
-```
-Traditional VRRP:                    EVPN Anycast Gateway:
-  .1 = VRRP VIP (shared)              .1 = Anycast GW (ALL leaves)
-  .2 = TOR1 self-IP (unique)          No self-IPs needed
-  .3 = TOR2 self-IP (unique)          No VRRP, no VRIDs
-  3 IPs consumed per VLAN             1 IP consumed per VLAN
-```
+| | **Traditional VRRP** | **EVPN Anycast Gateway** |
+|---|---|---|
+| **Gateway** | .1 = VRRP VIP (shared) | .1 = Anycast GW (ALL leaves) |
+| **Self-IPs** | .2 = TOR1, .3 = TOR2 (unique per switch) | None needed |
+| **Protocol overhead** | VRRP state, VRIDs, gratuitous ARP | None |
+| **IPs consumed per VLAN** | 3 | 1 |
 
 Every leaf switch in the fabric advertises the **same gateway IP and MAC** (`00:01:01:01:01:01` in our deployment). Hosts always route to the nearest leaf. No VRRP state to attack, no self-IPs to probe, no gratuitous ARP storms during failover.
 
@@ -79,33 +78,28 @@ EVPN Type-2 routes bind MAC addresses to IP addresses at the control plane level
 
 Here's the physical topology I'm working with — a single-rack deployment with spine-leaf that scales to multi-rack:
 
-```
-              ┌──────────────────────────────────────┐
-              │     Border/Spine Rack                 │
-              │  ┌───────────────┐ ┌───────────────┐ │
-              │  │  Border-1     │ │  Border-2     │ │
-              │  │  C9336C-FX3   │ │  C9336C-FX3   │ │
-              │  │  ASN 64841    │ │  ASN 64841    │ │
-              │  └───────┬───────┘ └───────┬───────┘ │
-              └──────────┼─────────────────┼─────────┘
-                         │  eBGP           │  eBGP
-                         │  unnumbered     │  unnumbered
-              ┌──────────┼─────────────────┼─────────┐
-              │  ┌───────┴───────┐ ┌───────┴───────┐ │
-              │  │  TOR1 (Leaf)  │ │  TOR2 (Leaf)  │ │
-              │  │  Nexus 93xx   │ │  Nexus 93xx   │ │
-              │  │  ASN 64789    │ │  ASN 64789    │ │
-              │  │  vPC Pair     ├─┤  vPC Pair     │ │
-              │  └───────┬───────┘ └───────┬───────┘ │
-              │          │                 │         │
-              │     ┌────┴─────────────────┴────┐    │
-              │     │    20 Compute Nodes        │    │
-              │     │  Card1 A→TOR1  B→TOR2     │    │
-              │     │  Card2 A→TOR1  B→TOR2     │    │
-              │     │  (SET trunk)  (Cluster)    │    │
-              │     └───────────────────────────┘    │
-              │              Compute Rack             │
-              └──────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph spine["Border/Spine Rack"]
+        B1["Border-1<br/>C9336C-FX3<br/>ASN 64841"]
+        B2["Border-2<br/>C9336C-FX3<br/>ASN 64841"]
+    end
+
+    subgraph rack["Compute Rack"]
+        T1["TOR1 (Leaf)<br/>Nexus 93xx<br/>ASN 64789"]
+        T2["TOR2 (Leaf)<br/>Nexus 93xx<br/>ASN 64789"]
+        T1 <--->|"vPC Peer Link"| T2
+        subgraph nodes["20 Compute Nodes"]
+            N["Card1 A→TOR1 B→TOR2 (SET trunk)<br/>Card2 A→TOR1 B→TOR2 (Cluster)"]
+        end
+    end
+
+    B1 <-->|"eBGP unnumbered"| T1
+    B1 <-->|"eBGP unnumbered"| T2
+    B2 <-->|"eBGP unnumbered"| T1
+    B2 <-->|"eBGP unnumbered"| T2
+    T1 --- N
+    T2 --- N
 ```
 
 **Key design elements:**
@@ -172,9 +166,13 @@ But here's the security-relevant part: **the virtual switch enforces VLAN taggin
 
 The isolation chain looks like this:
 
-```
-VM (VLAN 201) → vSwitch tags 802.1Q → Physical NIC → TOR Switch
-    → VLAN 201 → VNI 10201 → VXLAN tunnel → VRF WORKLOAD
+```mermaid
+flowchart LR
+    VM["VM<br/>(VLAN 201)"] -->|"802.1Q tag"| vSwitch["Hyper-V<br/>vSwitch"]
+    vSwitch -->|"SET trunk"| NIC["Physical<br/>NIC"]
+    NIC -->|"Trunk"| TOR["TOR Switch<br/>VLAN 201"]
+    TOR -->|"Encapsulate"| VNI["VNI 10201<br/>VXLAN tunnel"]
+    VNI -->|"VRF lookup"| VRF["VRF<br/>WORKLOAD"]
 ```
 
 At every hop, the traffic is constrained:
