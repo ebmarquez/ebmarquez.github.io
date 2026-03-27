@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" font-family="Segoe UI, Arial, sans-serif">
+  <!-- Background -->
+  <rect x="10" y="10" width="780" height="380" rx="12" fill="#1a1a2e" stroke="#16213e" stroke-width="2"/>
+  <text x="400" y="45" text-anchor="middle" fill="#e0e0e0" font-size="18" font-weight="bold">Physical Switch / Router</text>
+
+  <!-- VRF: Mgmt -->
+  <rect x="40" y="70" width="220" height="280" rx="8" fill="#0f3460" stroke="#533483" stroke-width="2"/>
+  <text x="150" y="100" text-anchor="middle" fill="#e94560" font-size="16" font-weight="bold">VRF: Mgmt</text>
+  <rect x="55" y="115" width="190" height="90" rx="6" fill="#16213e"/>
+  <text x="150" y="140" text-anchor="middle" fill="#a8d8ea" font-size="13" font-weight="bold">Route Table</text>
+  <text x="150" y="162" text-anchor="middle" fill="#e0e0e0" font-size="12">10.0.1.0/24</text>
+  <text x="150" y="182" text-anchor="middle" fill="#e0e0e0" font-size="12">10.0.2.0/24</text>
+  <rect x="55" y="220" width="190" height="60" rx="6" fill="#16213e"/>
+  <text x="150" y="245" text-anchor="middle" fill="#a8d8ea" font-size="13" font-weight="bold">Interfaces</text>
+  <text x="150" y="267" text-anchor="middle" fill="#e0e0e0" font-size="12">Vlan 100, Vlan 101</text>
+  <!-- Lock icon hint -->
+  <text x="150" y="320" text-anchor="middle" fill="#533483" font-size="28">🔒</text>
+
+  <!-- VRF: Compute -->
+  <rect x="290" y="70" width="220" height="280" rx="8" fill="#0f3460" stroke="#533483" stroke-width="2"/>
+  <text x="400" y="100" text-anchor="middle" fill="#e94560" font-size="16" font-weight="bold">VRF: Compute</text>
+  <rect x="305" y="115" width="190" height="90" rx="6" fill="#16213e"/>
+  <text x="400" y="140" text-anchor="middle" fill="#a8d8ea" font-size="13" font-weight="bold">Route Table</text>
+  <text x="400" y="162" text-anchor="middle" fill="#e0e0e0" font-size="12">10.0.1.0/24</text>
+  <text x="400" y="182" text-anchor="middle" fill="#e0e0e0" font-size="12">172.16.0.0/16</text>
+  <rect x="305" y="220" width="190" height="60" rx="6" fill="#16213e"/>
+  <text x="400" y="245" text-anchor="middle" fill="#a8d8ea" font-size="13" font-weight="bold">Interfaces</text>
+  <text x="400" y="267" text-anchor="middle" fill="#e0e0e0" font-size="12">Vlan 200, Vlan 201</text>
+  <text x="400" y="320" text-anchor="middle" fill="#533483" font-size="28">🔒</text>
+
+  <!-- Default VRF -->
+  <rect x="540" y="70" width="220" height="280" rx="8" fill="#0f3460" stroke="#533483" stroke-width="2"/>
+  <text x="650" y="100" text-anchor="middle" fill="#e94560" font-size="16" font-weight="bold">Default VRF</text>
+  <rect x="555" y="115" width="190" height="90" rx="6" fill="#16213e"/>
+  <text x="650" y="140" text-anchor="middle" fill="#a8d8ea" font-size="13" font-weight="bold">Route Table</text>
+  <text x="650" y="162" text-anchor="middle" fill="#e0e0e0" font-size="12">Mgmt routes</text>
+  <text x="650" y="182" text-anchor="middle" fill="#e0e0e0" font-size="12"></text>
+  <rect x="555" y="220" width="190" height="60" rx="6" fill="#16213e"/>
+  <text x="650" y="245" text-anchor="middle" fill="#a8d8ea" font-size="13" font-weight="bold">Interfaces</text>
+  <text x="650" y="267" text-anchor="middle" fill="#e0e0e0" font-size="12">Mgmt0</text>
+  <text x="650" y="320" text-anchor="middle" fill="#533483" font-size="28">🔒</text>
+
+  <!-- Divider lines between VRFs -->
+  <line x1="275" y1="80" x2="275" y2="340" stroke="#e94560" stroke-width="2" stroke-dasharray="6,4"/>
+  <line x1="525" y1="80" x2="525" y2="340" stroke="#e94560" stroke-width="2" stroke-dasharray="6,4"/>
+
+  <!-- Caption -->
+  <text x="400" y="378" text-anchor="middle" fill="#888" font-size="13" font-style="italic">Same box · Same IPs · Completely isolated</text>
+</svg>

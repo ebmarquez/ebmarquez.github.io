@@ -49,24 +49,8 @@ Without VRFs, it's a warehouse — one giant open floor plan. Everyone's stuff i
 
 The key insight: **VRFs are virtual routers living inside a physical one.** Each VRF has its own routing table, its own forwarding decisions, and its own view of the network. An interface assigned to VRF "Blue" has absolutely no idea that VRF "Red" exists on the same box.
 
-```mermaid
-block-beta
-    columns 3
-    block:switch["Physical Switch/Router"]:3
-        block:vrfmgmt["VRF: Mgmt"]
-            m1["Route Table:\n10.0.1.0/24\n10.0.2.0/24"]
-            m2["Interfaces:\nVlan 100, Vlan 101"]
-        end
-        block:vrfcompute["VRF: Compute"]
-            c1["Route Table:\n10.0.1.0/24\n172.16.0.0/16"]
-            c2["Interfaces:\nVlan 200, Vlan 201"]
-        end
-        block:global["Default VRF"]
-            g1["Route Table:\nMgmt routes"]
-            g2["Interfaces:\nMgmt0"]
-        end
-    end
-```
+![VRF isolation — three independent routing tables inside one physical switch](/assets/img/posts/2026-03-27/vrf-isolation.svg)
+_Same box · Same IPs · Completely isolated_
 
 > Same box. Same IPs. Completely isolated.
 

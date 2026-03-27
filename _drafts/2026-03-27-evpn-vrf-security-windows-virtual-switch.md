@@ -78,29 +78,7 @@ EVPN Type-2 routes bind MAC addresses to IP addresses at the control plane level
 
 Here's the physical topology I'm working with — a single-rack deployment with spine-leaf that scales to multi-rack:
 
-```mermaid
-graph TD
-    subgraph spine["Border/Spine Rack"]
-        B1["Border-1<br/>C9336C-FX3<br/>ASN 64841"]
-        B2["Border-2<br/>C9336C-FX3<br/>ASN 64841"]
-    end
-
-    subgraph rack["Compute Rack"]
-        T1["TOR1 (Leaf)<br/>Nexus 93xx<br/>ASN 64789"]
-        T2["TOR2 (Leaf)<br/>Nexus 93xx<br/>ASN 64789"]
-        T1 <--->|"vPC Peer Link"| T2
-        subgraph nodes["20 Compute Nodes"]
-            N["Card1 A→TOR1 B→TOR2 (SET trunk)<br/>Card2 A→TOR1 B→TOR2 (Cluster)"]
-        end
-    end
-
-    B1 <-->|"eBGP unnumbered"| T1
-    B1 <-->|"eBGP unnumbered"| T2
-    B2 <-->|"eBGP unnumbered"| T1
-    B2 <-->|"eBGP unnumbered"| T2
-    T1 --- N
-    T2 --- N
-```
+![Spine-leaf topology with VXLAN/EVPN overlay and vPC leaf pair](/assets/img/posts/2026-03-27/spine-leaf-topology.svg)
 
 **Key design elements:**
 
@@ -166,14 +144,7 @@ But here's the security-relevant part: **the virtual switch enforces VLAN taggin
 
 The isolation chain looks like this:
 
-```mermaid
-flowchart LR
-    VM["VM<br/>(VLAN 201)"] -->|"802.1Q tag"| vSwitch["Hyper-V<br/>vSwitch"]
-    vSwitch -->|"SET trunk"| NIC["Physical<br/>NIC"]
-    NIC -->|"Trunk"| TOR["TOR Switch<br/>VLAN 201"]
-    TOR -->|"Encapsulate"| VNI["VNI 10201<br/>VXLAN tunnel"]
-    VNI -->|"VRF lookup"| VRF["VRF<br/>WORKLOAD"]
-```
+![Isolation chain — VM to VRF, enforced at every hop](/assets/img/posts/2026-03-27/isolation-chain.svg)
 
 At every hop, the traffic is constrained:
 1. **Virtual switch** — only configured VLANs are permitted on VM adapters
