@@ -3,7 +3,7 @@ layout: post
 title: "What Are VRFs and How They Work"
 date: 2026-03-27 12:00:00 -0700
 categories: [networking]
-tags: [vrf, networking, data-center, isolation, routing, dell-os10, spine-leaf]
+tags: [vrf, networking, data-center, isolation, routing, cisco, nxos, spine-leaf]
 author: ebmarquez
 description: "A practical, no-nonsense guide to Virtual Routing and Forwarding (VRF) for engineers who know networking but haven't clicked with VRFs yet."
 image:
@@ -86,16 +86,16 @@ Routes learned on interfaces in VRF "A" go into VRF A's table. Routes in VRF "B"
 An interface belongs to exactly one VRF (or the global/default table). When you assign an interface to a VRF, any IP addressing and routing on that interface lives inside that VRF's world.
 
 ```
-! Dell OS10 example
-vrf WORKLOAD
+! Cisco NX-OS example
+vrf context WORKLOAD
 !
-interface vlan 7
-  ip vrf forwarding WORKLOAD
+interface Vlan7
+  vrf member WORKLOAD
   ip address 100.68.12.1/24
   no shutdown
 ```
 
-That `ip vrf forwarding WORKLOAD` line is doing the heavy lifting. It says: "This interface's routes, ARP entries, and forwarding decisions all happen inside the WORKLOAD VRF. Not the global table. Not any other VRF."
+That `vrf member WORKLOAD` line is doing the heavy lifting. It says: "This interface's routes, ARP entries, and forwarding decisions all happen inside the WORKLOAD VRF. Not the global table. Not any other VRF."
 
 ### 3. Packets Stay in Their Lane
 
@@ -139,38 +139,42 @@ The VLANs give you L2 separation between traffic types. The VRF gives you a hard
 
 Enough theory. Here's how this actually looks in production.
 
-In multi-tenant data center deployments, the TOR (Top of Rack) switches use VRFs to isolate tenant and workload traffic from infrastructure management. Here's a real config from a Dell OS10 switch:
+In multi-tenant data center deployments, the TOR (Top of Rack) switches use VRFs to isolate tenant and workload traffic from infrastructure management. Here's a real config from a Cisco Nexus switch:
 
 ```
 ! VRF for workload/tenant traffic
-vrf WORKLOAD
+vrf context WORKLOAD
 !
 ! Each workload VLAN gets assigned to the VRF
-interface virtual-network 10007    ! VLAN 7 - Infra
-  ip vrf forwarding WORKLOAD
+interface Vlan7
+  description Infrastructure
+  vrf member WORKLOAD
   ip address 100.68.12.1/24
-  ip virtual-router address 100.68.12.1
+  fabric forwarding mode anycast-gateway
 !
-interface virtual-network 10006    ! VLAN 6 - Network Virtualization
-  ip vrf forwarding WORKLOAD
+interface Vlan6
+  description Network Virtualization
+  vrf member WORKLOAD
   ip address 100.71.189.1/24
-  ip virtual-router address 100.71.189.1
+  fabric forwarding mode anycast-gateway
 !
-interface virtual-network 10201    ! VLAN 201 - Tenant
-  ip vrf forwarding WORKLOAD
+interface Vlan201
+  description Tenant
+  vrf member WORKLOAD
   ip address 100.78.108.1/23
-  ip virtual-router address 100.78.108.1
+  fabric forwarding mode anycast-gateway
 !
-! Meanwhile, Cluster management stays in the global table
-interface virtual-network 10711    ! VLAN 711 - Cluster
+! Meanwhile, Cluster management stays in the default VRF
+interface Vlan711
+  description Cluster
   ip address 10.71.1.1/24
-  ip virtual-router address 10.71.1.1
+  fabric forwarding mode anycast-gateway
 ```
 
 See the pattern?
 
 - **WORKLOAD VRF:** All the tenant and workload traffic — infra, network virtualization, tenant networks, public VIPs, GRE tunnels. These all need to route to each other but must be **isolated from the management plane**.
-- **Global table:** Cluster management, switch management, BMC access. The stuff that runs the infrastructure itself.
+- **Default VRF:** Cluster management, switch management, BMC access. The stuff that runs the infrastructure itself.
 
 This separation is critical. If a misconfigured tenant VM starts spewing traffic, it's contained within the WORKLOAD VRF. It can't touch cluster management. It can't reach the switch management interface. The VRF is the blast wall.
 
@@ -197,25 +201,24 @@ Not really. Modern ASICs handle VRF lookups in hardware at line rate. The perfor
 
 ## Quick Config Example
 
-Here's a minimal VRF setup on a Dell OS10 switch. No EVPN, no VXLAN — just raw VRF isolation:
+Here's a minimal VRF setup on a Cisco Nexus switch. No EVPN, no VXLAN — just raw VRF isolation:
 
 ```
 ! Step 1: Create the VRF
-vrf TENANT-A
+vrf context TENANT-A
 !
-! Step 2: Create a VLAN and SVI
-interface vlan 100
-  description Tenant-A-Servers
-  no shutdown
+! Step 2: Create a VLAN
+vlan 100
+  name Tenant-A-Servers
 !
-! Step 3: Assign the SVI to the VRF
-interface vlan 100
-  ip vrf forwarding TENANT-A
+! Step 3: Create the SVI and assign to the VRF
+interface Vlan100
+  vrf member TENANT-A
   ip address 10.0.1.1/24
   no shutdown
 !
 ! Step 4: Assign physical ports to the VLAN
-interface ethernet 1/1/1
+interface Ethernet1/1
   switchport mode access
   switchport access vlan 100
   no shutdown

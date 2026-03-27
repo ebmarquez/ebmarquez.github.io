@@ -3,7 +3,7 @@ layout: post
 title: "EVPN and VRFs: The Security Architecture Your Data Center Actually Needs"
 date: 2026-03-27 13:00:00 -0700
 categories: [networking]
-tags: [evpn, vrf, vxlan, security, data-center, hyper-v, dell-os10, cisco, spine-leaf]
+tags: [evpn, vrf, vxlan, security, data-center, hyper-v, cisco, nxos, spine-leaf]
 author: ebmarquez
 description: "How EVPN with VRF isolation extends from the physical fabric to the Windows Hyper-V virtual switch — and why it's a real security upgrade over VLANs."
 image:
@@ -19,7 +19,7 @@ If you've been running multi-tenant workloads on traditional VLANs and feeling p
 
 EVPN with VRF-based isolation is the concrete wall upgrade. And if you're running Hyper-V workloads on a spine-leaf fabric, the way this integrates with the Windows Hyper-V virtual switch is genuinely elegant — once you understand the full stack.
 
-I've been building these architectures at scale using Dell S5248F-ON leaf switches with VXLAN/EVPN overlay, Cisco C9336C-FX3 border/spine switches, and Windows Server hosts running Hyper-V with Switch Embedded Teaming (SET). Here's how it all connects and why it matters for security.
+I've been building these architectures at scale using Cisco Nexus leaf switches with VXLAN/EVPN overlay, Cisco C9336C-FX3 border/spine switches, and Windows Server hosts running Hyper-V with Switch Embedded Teaming (SET). Here's how it all connects and why it matters for security.
 
 ---
 
@@ -93,9 +93,9 @@ Here's the physical topology I'm working with — a single-rack deployment with 
               ┌──────────┼─────────────────┼─────────┐
               │  ┌───────┴───────┐ ┌───────┴───────┐ │
               │  │  TOR1 (Leaf)  │ │  TOR2 (Leaf)  │ │
-              │  │  S5248F-ON    │ │  S5248F-ON    │ │
+              │  │  Nexus 93xx   │ │  Nexus 93xx   │ │
               │  │  ASN 64789    │ │  ASN 64789    │ │
-              │  │  VLT Pair     ├─┤  VLT Pair     │ │
+              │  │  vPC Pair     ├─┤  vPC Pair     │ │
               │  └───────┬───────┘ └───────┬───────┘ │
               │          │                 │         │
               │     ┌────┴─────────────────┴────┐    │
@@ -111,8 +111,8 @@ Here's the physical topology I'm working with — a single-rack deployment with 
 **Key design elements:**
 
 - **eBGP unnumbered** between leaves and spines — no IP addresses to manage on fabric links, no numbered /30s to track
-- **Dual-loopback model** — Loopback0 is the shared VTEP IP (same on both VLT peers: `100.71.93.148/32`), Loopback1 is the unique BGP router-ID (`100.71.93.149/32` and `.150/32`)
-- **VLT between TOR peers** — presents a single logical switch to the hosts while maintaining independent BGP sessions
+- **Dual-loopback model** — Loopback0 is the shared VTEP IP (same on both vPC peers: `100.71.93.148/32`), Loopback1 is the unique BGP router-ID (`100.71.93.149/32` and `.150/32`)
+- **vPC between TOR peers** — presents a single logical switch to the hosts while maintaining independent BGP sessions
 - **EVPN overlay sessions** ride loopback-to-loopback (`ebgp-multihop 2`) to the border switches for route exchange
 
 ### VNI-to-VLAN Mapping
@@ -133,9 +133,9 @@ Each VLAN maps to a unique VXLAN Network Identifier. Traffic entering a leaf swi
 
 All VNIs for tenant-facing traffic live inside VRF `WORKLOAD`. The cluster VNIs (711/712) can stay in the default VRF or be placed in their own — they're isolated by design since cluster ports are dedicated access ports, not trunked.
 
-### Manual EVI: The Cisco Interop Tax
+### Manual EVI: Explicit Control Over Your Overlay
 
-When your leaves are Dell and your spines are Cisco, auto-EVI won't cut it. You need manual EVI configuration with explicit Route Distinguishers and Route Targets:
+In production VXLAN/EVPN fabrics, auto-derived EVI settings can sometimes cause unexpected behavior — especially at scale. Manual EVI configuration with explicit Route Distinguishers and Route Targets gives you full control:
 
 ```
 evpn
@@ -229,7 +229,7 @@ If you're designing multi-tenant environments on any VXLAN/EVPN fabric with Hype
 
 **Use anycast gateway everywhere.** If you're still running VRRP or HSRP on your leaf switches, you're carrying unnecessary complexity and attack surface. Anycast gateway is simpler, faster (no failover delay), and more secure (no self-IPs to probe).
 
-**Manual EVI for multi-vendor fabrics.** If your leaves and spines are from different vendors (Dell + Cisco, for example), don't trust auto-EVI. Explicit RD/RT configuration is more work upfront but eliminates interop surprises.
+**Manual EVI for large or multi-vendor fabrics.** Don't rely on auto-EVI in production. Explicit RD/RT configuration is more work upfront but eliminates surprises at scale.
 
 **Don't forget the host layer.** The best fabric security means nothing if the virtual switch is misconfigured. Ensure trunk allowed lists match between the physical switch and the SET virtual switch config. Audit VM VLAN assignments against your VRF design.
 
@@ -253,4 +253,4 @@ Build the foundation right, and the rest is configuration management.
 
 *This is Part 2 of a series on network isolation. Read [Part 1: What Are VRFs and How They Work](/posts/what-are-vrfs-and-how-they-work/) if you haven't already.*
 
-*This post is based on production architecture work with single-rack and multi-rack data center deployments. The configurations shown use Dell OS10 on S5248F-ON leaf switches and Cisco NX-OS/IOS-XE on C9336C-FX3 border/spine switches. Your mileage may vary with different vendors, but the EVPN/VRF principles are universal.*
+*This post is based on production architecture work with single-rack and multi-rack data center deployments. The configurations shown use Cisco NX-OS on Nexus leaf and spine switches. Your mileage may vary with different vendors, but the EVPN/VRF principles are universal.*
