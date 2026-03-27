@@ -3,7 +3,7 @@ layout: post
 title: "EVPN and VRFs: The Security Architecture Your Data Center Actually Needs"
 date: 2026-03-27 13:00:00 -0700
 categories: [networking]
-tags: [evpn, vrf, vxlan, azure-local, security, data-center, hyper-v, dell-os10, cisco]
+tags: [evpn, vrf, vxlan, security, data-center, hyper-v, dell-os10, cisco, spine-leaf]
 author: ebmarquez
 description: "How EVPN with VRF isolation extends from the physical fabric to the Windows Hyper-V virtual switch — and why it's a real security upgrade over VLANs."
 image:
@@ -17,7 +17,7 @@ image:
 
 If you've been running multi-tenant workloads on traditional VLANs and feeling pretty good about your "isolation," I've got some uncomfortable news. VLANs were designed for traffic management, not security boundaries. They're the drywall between hotel rooms — technically separating spaces, but one determined guest with a drill changes everything.
 
-EVPN with VRF-based isolation is the concrete wall upgrade. And if you're running Azure Local (formerly Azure Stack HCI), the way this integrates with the Windows Hyper-V virtual switch is genuinely elegant — once you understand the full stack.
+EVPN with VRF-based isolation is the concrete wall upgrade. And if you're running Hyper-V workloads on a spine-leaf fabric, the way this integrates with the Windows Hyper-V virtual switch is genuinely elegant — once you understand the full stack.
 
 I've been building these architectures at scale using Dell S5248F-ON leaf switches with VXLAN/EVPN overlay, Cisco C9336C-FX3 border/spine switches, and Windows Server hosts running Hyper-V with Switch Embedded Teaming (SET). Here's how it all connects and why it matters for security.
 
@@ -49,7 +49,7 @@ With VRFs, the routing table for tenant A literally doesn't contain routes for t
 
 ### 2. Control Plane Precision
 
-EVPN uses BGP to distribute MAC/IP bindings with route targets (RTs) that scope advertisements to specific VRFs. When a switch learns a new MAC address in VRF `AZLOCAL`, it advertises that binding with a route target like `10201:10201`. Only switches importing that RT will install the route.
+EVPN uses BGP to distribute MAC/IP bindings with route targets (RTs) that scope advertisements to specific VRFs. When a switch learns a new MAC address in VRF `WORKLOAD`, it advertises that binding with a route target like `10201:10201`. Only switches importing that RT will install the route.
 
 Compare this to traditional flooding: broadcast a frame, every switch in the VLAN sees it, every host in the VLAN processes it. EVPN replaces this with targeted, control-plane-driven forwarding. Less broadcast traffic, less attack surface.
 
@@ -77,7 +77,7 @@ EVPN Type-2 routes bind MAC addresses to IP addresses at the control plane level
 
 ## The Architecture: Spine-Leaf with VXLAN/EVPN
 
-Here's the physical topology I'm working with — a single-rack Azure Local deployment that scales to multi-rack:
+Here's the physical topology I'm working with — a single-rack deployment with spine-leaf that scales to multi-rack:
 
 ```
               ┌──────────────────────────────────────┐
@@ -99,7 +99,7 @@ Here's the physical topology I'm working with — a single-rack Azure Local depl
               │  └───────┬───────┘ └───────┬───────┘ │
               │          │                 │         │
               │     ┌────┴─────────────────┴────┐    │
-              │     │     20 Azure Local Nodes  │    │
+              │     │    20 Compute Nodes        │    │
               │     │  Card1 A→TOR1  B→TOR2     │    │
               │     │  Card2 A→TOR1  B→TOR2     │    │
               │     │  (SET trunk)  (Cluster)    │    │
@@ -122,7 +122,7 @@ Each VLAN maps to a unique VXLAN Network Identifier. Traffic entering a leaf swi
 | VLAN | VNI   | Purpose          | Subnet          | Anycast GW     |
 |------|-------|------------------|-----------------|----------------|
 | 7    | 10007 | Infrastructure   | 100.68.12.0/24  | 100.68.12.1    |
-| 6    | 10006 | HNVPA            | 100.71.189.0/24 | 100.71.189.1   |
+| 6    | 10006 | Network Virtualization | 100.71.189.0/24 | 100.71.189.1   |
 | 201  | 10201 | Tenant           | 100.78.108.0/23 | 100.78.108.1   |
 | 301  | 10301 | Logical Tenant   | 100.78.110.0/23 | 100.78.110.1   |
 | 500  | 10500 | L3 Forwarding    | 100.68.13.0/24  | 100.68.13.1    |
@@ -131,7 +131,7 @@ Each VLAN maps to a unique VXLAN Network Identifier. Traffic entering a leaf swi
 | 711  | 10711 | Cluster Path 1   | 10.71.1.0/24    | 10.71.1.1      |
 | 712  | 10712 | Cluster Path 2   | 10.71.2.0/24    | 10.71.2.1      |
 
-All VNIs for tenant-facing traffic live inside VRF `AZLOCAL`. The cluster VNIs (711/712) can stay in the default VRF or be placed in their own — they're isolated by design since cluster ports are dedicated access ports, not trunked.
+All VNIs for tenant-facing traffic live inside VRF `WORKLOAD`. The cluster VNIs (711/712) can stay in the default VRF or be placed in their own — they're isolated by design since cluster ports are dedicated access ports, not trunked.
 
 ### Manual EVI: The Cisco Interop Tax
 
@@ -150,11 +150,11 @@ Each EVI maps 1:1 to a VNI. The RD uses the leaf's unique router-ID (Loopback1) 
 
 ## Where Windows Virtual Switch Enters the Picture
 
-Here's the part that makes Azure Local interesting: the isolation model doesn't stop at the physical switch. It extends into the host through the **Hyper-V Virtual Switch** running in **Switch Embedded Teaming (SET)** mode.
+Here's the part that makes this architecture interesting: the isolation model doesn't stop at the physical switch. It extends into the host through the **Hyper-V Virtual Switch** running in **Switch Embedded Teaming (SET)** mode.
 
 ### How the Host Connects
 
-Each Azure Local node has three NIC cards with specific roles:
+Each compute node has three NIC cards with specific roles:
 
 | Card | Function | Connection | Teaming |
 |------|----------|------------|---------|
@@ -174,7 +174,7 @@ The isolation chain looks like this:
 
 ```
 VM (VLAN 201) → vSwitch tags 802.1Q → Physical NIC → TOR Switch
-    → VLAN 201 → VNI 10201 → VXLAN tunnel → VRF AZLOCAL
+    → VLAN 201 → VNI 10201 → VXLAN tunnel → VRF WORKLOAD
 ```
 
 At every hop, the traffic is constrained:
@@ -223,7 +223,7 @@ When you combine EVPN/VRF on the physical fabric with Windows virtual switch enf
 
 ## Practical Takeaways for Network Engineers
 
-If you're designing multi-tenant environments on Azure Local (or any VXLAN/EVPN fabric), here's what I'd prioritize:
+If you're designing multi-tenant environments on any VXLAN/EVPN fabric with Hyper-V hosts, here's what I'd prioritize:
 
 **Start with VRF design, not VLAN design.** Think about your isolation domains first. Which workloads need to talk to each other? Which absolutely must not? Map VRFs to business requirements, then map VNIs and VLANs to VRFs.
 
@@ -243,7 +243,7 @@ If you're designing multi-tenant environments on Azure Local (or any VXLAN/EVPN 
 
 EVPN with VRF isolation isn't just a networking upgrade — it's a security architecture. When you pair it with the Windows Hyper-V virtual switch in SET mode, you get isolation that runs from the VM all the way through the physical fabric, enforced at every layer.
 
-Traditional VLANs gave us segmentation. EVPN/VRF gives us isolation. There's a meaningful difference, and if you're running multi-tenant workloads on Azure Local, that difference is worth the migration effort.
+Traditional VLANs gave us segmentation. EVPN/VRF gives us isolation. There's a meaningful difference, and if you're running multi-tenant workloads on Hyper-V clusters, that difference is worth the migration effort.
 
 The best part? Once the fabric is built, adding new tenants is clean and repeatable — a VNI mapping, an EVI, a route target, and a VLAN on the virtual switch. No VRRP groups to configure, no IP addresses to allocate per switch, no broadcast domains to worry about flooding.
 
@@ -253,4 +253,4 @@ Build the foundation right, and the rest is configuration management.
 
 *This is Part 2 of a series on network isolation. Read [Part 1: What Are VRFs and How They Work](/posts/what-are-vrfs-and-how-they-work/) if you haven't already.*
 
-*This post is based on production architecture work with Azure Local single-rack and multi-rack deployments. The configurations shown use Dell OS10 on S5248F-ON leaf switches and Cisco NX-OS/IOS-XE on C9336C-FX3 border/spine switches. Your mileage may vary with different vendors, but the EVPN/VRF principles are universal.*
+*This post is based on production architecture work with single-rack and multi-rack data center deployments. The configurations shown use Dell OS10 on S5248F-ON leaf switches and Cisco NX-OS/IOS-XE on C9336C-FX3 border/spine switches. Your mileage may vary with different vendors, but the EVPN/VRF principles are universal.*

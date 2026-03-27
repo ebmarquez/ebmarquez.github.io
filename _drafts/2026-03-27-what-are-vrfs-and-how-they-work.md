@@ -3,7 +3,7 @@ layout: post
 title: "What Are VRFs and How They Work"
 date: 2026-03-27 12:00:00 -0700
 categories: [networking]
-tags: [vrf, networking, azure-local, data-center, isolation, routing, dell-os10]
+tags: [vrf, networking, data-center, isolation, routing, dell-os10, spine-leaf]
 author: ebmarquez
 description: "A practical, no-nonsense guide to Virtual Routing and Forwarding (VRF) for engineers who know networking but haven't clicked with VRFs yet."
 image:
@@ -19,7 +19,7 @@ You know that moment when someone at work casually drops "yeah, just put it in a
 
 I've been there. I've *been* the person nodding while furiously Googling under the table. And I've been on the other side too — explaining VRFs to sharp engineers who can subnet in their sleep but can't quite articulate why a VRF isn't just "a fancy VLAN."
 
-So let's fix that. No vendor slides. No RFC citations. Just a real explanation of what VRFs are, why they exist, and how they actually work — with examples from production Azure Local deployments I've built.
+So let's fix that. No vendor slides. No RFC citations. Just a real explanation of what VRFs are, why they exist, and how they actually work — with examples from production data center deployments I've built.
 
 ## The Problem: One Router, Too Many Opinions
 
@@ -87,19 +87,19 @@ An interface belongs to exactly one VRF (or the global/default table). When you 
 
 ```
 ! Dell OS10 example
-vrf AZLOCAL
+vrf WORKLOAD
 !
 interface vlan 7
-  ip vrf forwarding AZLOCAL
+  ip vrf forwarding WORKLOAD
   ip address 100.68.12.1/24
   no shutdown
 ```
 
-That `ip vrf forwarding AZLOCAL` line is doing the heavy lifting. It says: "This interface's routes, ARP entries, and forwarding decisions all happen inside the AZLOCAL VRF. Not the global table. Not any other VRF."
+That `ip vrf forwarding WORKLOAD` line is doing the heavy lifting. It says: "This interface's routes, ARP entries, and forwarding decisions all happen inside the WORKLOAD VRF. Not the global table. Not any other VRF."
 
 ### 3. Packets Stay in Their Lane
 
-When a packet arrives on an interface in VRF "AZLOCAL," the router looks up the destination in **AZLOCAL's routing table only**. Not the global table. Not another VRF's table. If the destination isn't in AZLOCAL's table, the packet gets dropped — even if a perfectly valid route exists in another VRF.
+When a packet arrives on an interface in VRF "WORKLOAD," the router looks up the destination in **WORKLOAD's routing table only**. Not the global table. Not another VRF's table. If the destination isn't in WORKLOAD's table, the packet gets dropped — even if a perfectly valid route exists in another VRF.
 
 This is the isolation guarantee. **VRFs are ships passing in the night.**
 
@@ -131,33 +131,33 @@ This is where most of the confusion lives, so let's kill it:
 
 **In practice, you usually use both.** VLANs handle L2 segmentation. VRFs handle L3 isolation. They're complementary, not competing.
 
-Here's a concrete example: In an Azure Local deployment, you might have VLAN 7 (Infrastructure), VLAN 6 (HNV Provider), and VLAN 201 (Tenant) — all living inside the `AZLOCAL` VRF. They can route to each other through that VRF. But VLAN 711 (Cluster management) sits in the **global routing table**, completely separated from the tenant workloads.
+Here's a concrete example: In a multi-tenant data center deployment, you might have VLAN 7 (Infrastructure), VLAN 6 (Network Virtualization), and VLAN 201 (Tenant) — all living inside the `WORKLOAD` VRF. They can route to each other through that VRF. But VLAN 711 (Cluster management) sits in the **global routing table**, completely separated from the tenant workloads.
 
 The VLANs give you L2 separation between traffic types. The VRF gives you a hard L3 wall between "tenant stuff" and "infrastructure stuff."
 
-## VRFs in the Real World: Azure Local
+## VRFs in the Real World: Data Center Spine-Leaf
 
 Enough theory. Here's how this actually looks in production.
 
-In Azure Local network deployments, the TOR (Top of Rack) switches use VRFs to isolate tenant and workload traffic from infrastructure management. Here's the real config from a Dell OS10 switch:
+In multi-tenant data center deployments, the TOR (Top of Rack) switches use VRFs to isolate tenant and workload traffic from infrastructure management. Here's a real config from a Dell OS10 switch:
 
 ```
-! VRF for Azure Local tenant traffic
-vrf AZLOCAL
+! VRF for workload/tenant traffic
+vrf WORKLOAD
 !
 ! Each workload VLAN gets assigned to the VRF
 interface virtual-network 10007    ! VLAN 7 - Infra
-  ip vrf forwarding AZLOCAL
+  ip vrf forwarding WORKLOAD
   ip address 100.68.12.1/24
   ip virtual-router address 100.68.12.1
 !
-interface virtual-network 10006    ! VLAN 6 - HNV Provider
-  ip vrf forwarding AZLOCAL
+interface virtual-network 10006    ! VLAN 6 - Network Virtualization
+  ip vrf forwarding WORKLOAD
   ip address 100.71.189.1/24
   ip virtual-router address 100.71.189.1
 !
 interface virtual-network 10201    ! VLAN 201 - Tenant
-  ip vrf forwarding AZLOCAL
+  ip vrf forwarding WORKLOAD
   ip address 100.78.108.1/23
   ip virtual-router address 100.78.108.1
 !
@@ -169,10 +169,10 @@ interface virtual-network 10711    ! VLAN 711 - Cluster
 
 See the pattern?
 
-- **AZLOCAL VRF:** All the Azure Local workload traffic — infra, HNV provider, tenant networks, public VIPs, GRE tunnels. These all need to route to each other but must be **isolated from the management plane**.
+- **WORKLOAD VRF:** All the tenant and workload traffic — infra, network virtualization, tenant networks, public VIPs, GRE tunnels. These all need to route to each other but must be **isolated from the management plane**.
 - **Global table:** Cluster management, switch management, BMC access. The stuff that runs the infrastructure itself.
 
-This separation is critical. If a misconfigured tenant VM starts spewing traffic, it's contained within the AZLOCAL VRF. It can't touch cluster management. It can't reach the switch management interface. The VRF is the blast wall.
+This separation is critical. If a misconfigured tenant VM starts spewing traffic, it's contained within the WORKLOAD VRF. It can't touch cluster management. It can't reach the switch management interface. The VRF is the blast wall.
 
 In multi-rack deployments with EVPN/VXLAN, this gets even more powerful — the VRF extends across racks through VXLAN tunnels, giving you consistent L3 isolation across the entire fabric.
 
@@ -244,7 +244,7 @@ Now your VRF's connected routes are being advertised via BGP — but only within
 - **VRFs = virtual routers inside one physical box.** Separate routing tables, separate forwarding, total isolation.
 - **VLANs are L2, VRFs are L3.** They complement each other. Use both.
 - **VRFs prevent route leaking** between tenants, between management and workload, between anything you want to keep apart.
-- **Real-world use:** Azure Local deployments use VRFs to isolate tenant/workload traffic from cluster management.
+- **Real-world use:** Multi-tenant data center deployments use VRFs to isolate tenant/workload traffic from cluster management.
 - **They're not scary.** A basic VRF config is five lines.
 
 ---
