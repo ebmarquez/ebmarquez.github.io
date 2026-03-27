@@ -86,7 +86,7 @@ Routes learned on interfaces in VRF "A" go into VRF A's table. Routes in VRF "B"
 
 An interface belongs to exactly one VRF (or the global/default table). When you assign an interface to a VRF, any IP addressing and routing on that interface lives inside that VRF's world.
 
-```
+```nxos
 ! Cisco NX-OS example
 vrf context WORKLOAD
 !
@@ -108,7 +108,7 @@ This is the isolation guarantee. **VRFs are ships passing in the night.**
 
 If you're running VRFs with BGP (especially in MPLS or EVPN environments), you'll encounter two concepts:
 
-- **Route Distinguisher (RD):** A tag prepended to a route to make it globally unique. If two VRFs both have `10.0.1.0/24`, the RD turns them into `64789:1:10.0.1.0/24` and `64789:2:10.0.1.0/24`. The RD doesn't affect forwarding — it's just bookkeeping so BGP can carry overlapping prefixes without confusion.
+- **Route Distinguisher (RD):** A tag prepended to a route to make it globally unique within BGP. If two VRFs both have `10.0.1.0/24`, the RD turns them into `64789:1:10.0.1.0/24` and `64789:2:10.0.1.0/24`. The RD doesn't affect forwarding — it's bookkeeping so BGP can carry overlapping prefixes without confusion.
 
 - **Route Target (RT):** Controls which VRFs **import** and **export** routes. When VRF A exports with RT `100:1`, any VRF configured to import RT `100:1` will pull those routes in. This is how you can selectively share routes between VRFs when you actually want them to talk.
 
@@ -142,7 +142,7 @@ Enough theory. Here's how this actually looks in production.
 
 In multi-tenant data center deployments, the TOR (Top of Rack) switches use VRFs to isolate tenant and workload traffic from infrastructure management. Here's a real config from a Cisco Nexus switch:
 
-```
+```nxos
 ! VRF for workload/tenant traffic
 vrf context WORKLOAD
 !
@@ -204,7 +204,7 @@ Not really. Modern ASICs handle VRF lookups in hardware at line rate. The perfor
 
 Here's a minimal VRF setup on a Cisco Nexus switch. No EVPN, no VXLAN — just raw VRF isolation:
 
-```
+```nxos
 ! Step 1: Create the VRF
 vrf context TENANT-A
 !
@@ -233,7 +233,7 @@ That's it. Five steps. Any traffic on VLAN 100 now routes exclusively through TE
 
 Want to add BGP for the VRF?
 
-```
+```nxos
 router bgp 64789
   !
   address-family ipv4 unicast vrf TENANT-A
@@ -259,4 +259,4 @@ Now your VRF's connected routes are being advertised via BGP — but only within
 
 ---
 
-*Have questions or war stories about VRFs? Find me on [LinkedIn](https://linkedin.com/in/yourprofile) or [GitHub](https://github.com/ebmarquez).*
+*Have questions or war stories about VRFs? Find me on [GitHub](https://github.com/ebmarquez).*

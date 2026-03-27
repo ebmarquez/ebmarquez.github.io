@@ -131,7 +131,7 @@ All VNIs for tenant-facing traffic live inside VRF `WORKLOAD`. The cluster VNIs 
 
 In production VXLAN/EVPN fabrics, auto-derived EVI settings can sometimes cause unexpected behavior — especially at scale. Manual EVI configuration with explicit Route Distinguishers and Route Targets gives you full control:
 
-```
+```nxos
 evpn
   evi 10201
     rd 100.71.93.149:10201
