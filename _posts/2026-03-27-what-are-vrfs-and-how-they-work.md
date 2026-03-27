@@ -52,8 +52,6 @@ The key insight: **VRFs are virtual routers living inside a physical one.** Each
 ![VRF isolation — three independent routing tables inside one physical switch](/assets/img/posts/2026-03-27/vrf-isolation.svg)
 _Same box · Same IPs · Completely isolated_
 
-> Same box. Same IPs. Completely isolated.
-
 Notice that both VRFs have `10.0.1.0/24`? No problem. Each routing table is independent. No collisions, no confusion.
 
 ## How VRFs Actually Work
