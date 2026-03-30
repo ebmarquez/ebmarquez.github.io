@@ -3,9 +3,9 @@ layout: post
 title: "Hey Copilot, Can You SSH Into a Switch?"
 date: 2026-03-30 12:00:00 -0700
 categories: [networking, ai]
-tags: [sonic, copilot, ai, networking, automation, cisco, spine-leaf, data-center]
+tags: [sonic, copilot, ai, networking, automation, spine-leaf, data-center]
 author: ebmarquez
-description: "What happens when you point an AI at two factory-fresh SONiC switches and say 'figure it out.' A real-world experiment in AI-assisted network discovery."
+description: "What happens when you point an AI at two factory-fresh SONiC switches and say 'figure it out' — a real-world experiment in AI-assisted network discovery."
 image:
   path: https://images.unsplash.com/photo-1551703599-6b3e8379aa8c?w=1200&q=80
   alt: "Enterprise network switch with fiber and ethernet cables connected in a data center rack"
@@ -25,7 +25,7 @@ What happened next was one of the more interesting afternoons I've had in a lab.
 
 Here's something that would be straightforward for any network engineer but was genuinely novel for an AI: the switches weren't directly reachable over the network. They had no management IPs. The only way in was through a **serial console server** — a separate appliance that provides remote access to the switches' serial console ports.
 
-That means a two-step login:
+That means a multi-step login:
 
 1. **SSH to the console server** using corporate credentials
 2. **Connect to the correct console port** (each switch gets a dedicated port number)
@@ -47,7 +47,7 @@ It's a collaboration, not magic. But it's a collaboration where I never had to t
 
 With a shell on the first switch, the AI started doing what any good network engineer does on an unfamiliar device: interrogating it.
 
-```bash
+```text
 show version
 show platform summary
 show interface status
@@ -89,7 +89,7 @@ Network switches don't exist in isolation. They're connected to other switches, 
 - **Ports 1/39–1/40:** Dell 25G SFP28 DAC cables (1 meter) — inter-switch links
 - **Ports 1/45–1/46:** Dell 10G-LR SFP+ optics (long-range fiber)
 - **Ports 1/47–1/48:** Dell 10G-SR SFP+ optics (short-range fiber) — spine uplinks
-- **Ports 1/49–1/52:** FS 200G QSFP28-DD DAC cables (1 meter) — purpose unknown
+- **Ports 1/49–1/52:** FS QSFP28-DD 200G DAC cables (1 meter) — purpose unknown
 
 Out of 56 ports, only 10 had anything plugged in. The AI knew exactly where to focus.
 
