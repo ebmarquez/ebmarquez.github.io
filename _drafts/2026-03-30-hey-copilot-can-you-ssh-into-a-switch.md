@@ -7,8 +7,8 @@ tags: [sonic, copilot, ai, networking, automation, cisco, spine-leaf, data-cente
 author: ebmarquez
 description: "What happens when you point an AI at two factory-fresh SONiC switches and say 'figure it out.' A real-world experiment in AI-assisted network discovery."
 image:
-  path: https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&q=80
-  alt: "Network switch ports glowing in a dark server rack"
+  path: https://images.unsplash.com/photo-1551703599-6b3e8379aa8c?w=1200&q=80
+  alt: "Enterprise network switch with fiber and ethernet cables connected in a data center rack"
 ---
 
 *What happens when you point an AI at two factory-fresh SONiC switches and say "figure it out."*
