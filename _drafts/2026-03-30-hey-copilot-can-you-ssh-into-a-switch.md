@@ -131,7 +131,7 @@ At the end of this discovery session, I had:
 1. **A complete hardware inventory** for both switches — serial numbers, MACs, firmware versions, port counts, PSU/fan health
 2. **A transceiver map** — every optic cataloged with vendor, part number, speed, and connector type
 3. **A physical topology diagram** — which ports connect to which devices, confirmed via LLDP
-4. **A CLI reference** — Dell Enterprise SONiC vs community SONiC vs Cisco IOS command translation table
+4. **A CLI reference** — Dell Enterprise SONiC vs community SONiC vs Cisco NX-OS command translation table
 5. **An open issues list** — the 100G DAC mystery, missing serial number for ToR B, console port documentation gaps
 
 All of this was produced in a single session, documented in structured markdown, with tables and cross-references. If I'd done this manually, it would have been scattered across terminal scrollback and maybe a hastily typed Notepad document.
