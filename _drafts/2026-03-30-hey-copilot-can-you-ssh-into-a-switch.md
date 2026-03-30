@@ -31,13 +31,17 @@ That means a two-step login:
 2. **Connect to the correct console port** (each switch gets a dedicated port number)
 3. **Log in to the switch** using a different set of credentials — an admin account with a password stored in a cloud secrets vault
 
-The AI didn't know any of this upfront. It had the console server's hostname and IP, and it knew there were two switches. It had to figure out the rest.
+The AI didn't know any of this upfront. It had the console server's hostname and IP, and it knew there were two switches. But it needed guidance — this wasn't a "point and click" situation.
 
-What I watched unfold was a methodical process of discovery. The AI tried the obvious first — SSH directly to the console server with the admin credentials. That failed (wrong auth type). It tried the switch credentials against the console server. That also failed. Then it tried the corporate credentials, got through to the console server, and had to figure out which port number mapped to which switch.
+First, it needed credentials for the console server. I quickly discovered that you **can't just type your password into Copilot** — yeah, oops. So instead, I had it use the Azure CLI (which was already authenticated on my machine) to pull credentials from Azure Key Vault. I told it which vault to use, and it handled the `az keyvault secret show` call to retrieve what it needed.
 
-Once past the console server, it hit the switch login prompt and needed the admin password. I'd pointed it at the secrets vault earlier, and it retrieved the password and logged in successfully.
+For the console server itself, I had to tell it: "use my corp credentials — you can get them through the existing authenticated Azure CLI session." It connected, but then it needed to know which port number mapped to which switch. I gave it the port numbers.
 
-**Two authentication boundaries, three different credential sets, zero documentation provided.** The AI figured out the access flow through trial and error — the same way a new engineer would, just faster.
+Once past the console server, it hit the switch login prompt and needed the admin password. Again, I pointed it at the specific Key Vault secret, and it retrieved it and logged in.
+
+**Here's the honest version:** I guided it through each authentication boundary. I told it *where* to find credentials, not *what* the credentials were. The AI did the mechanical work — calling the Key Vault API, formatting the SSH commands, handling the console server's interactive prompts — but I was the one saying "now you need to authenticate here, and the credentials are over there."
+
+It's a collaboration, not magic. But it's a collaboration where I never had to type a password into a terminal.
 
 ## First Contact: "What Am I Looking At?"
 
