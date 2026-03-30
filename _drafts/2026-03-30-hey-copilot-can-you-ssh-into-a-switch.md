@@ -33,13 +33,13 @@ That means a two-step login:
 
 The AI didn't know any of this upfront. It had the console server's hostname and IP, and it knew there were two switches. But it needed guidance — this wasn't a "point and click" situation.
 
-First, it needed credentials for the console server. I quickly discovered that you **can't just type your password into Copilot** — yeah, oops. So instead, I had it use the Azure CLI (which was already authenticated on my machine) to pull credentials from Azure Key Vault. I told it which vault to use, and it handled the `az keyvault secret show` call to retrieve what it needed.
+First, it needed credentials for the console server. I quickly discovered that you **can't just type your password into Copilot** — yeah, oops. So instead, I had it pull my corp credentials from my password vault (Bitwarden). I told it which entry to look for, and it retrieved what it needed through the Bitwarden CLI.
 
-For the console server itself, I had to tell it: "use my corp credentials — you can get them through the existing authenticated Azure CLI session." It connected, but then it needed to know which port number mapped to which switch. I gave it the port numbers.
+For the console server itself, it used those corp credentials to connect, but then it needed to know which port number mapped to which switch. I gave it the port numbers.
 
-Once past the console server, it hit the switch login prompt and needed the admin password. Again, I pointed it at the specific Key Vault secret, and it retrieved it and logged in.
+Once past the console server, it hit the switch login prompt and needed the admin password — a completely different credential stored in a different place. This time I pointed it at Azure Key Vault (the Azure CLI was already authenticated on my machine), told it which vault and secret name, and it retrieved the switch password and logged in.
 
-**Here's the honest version:** I guided it through each authentication boundary. I told it *where* to find credentials, not *what* the credentials were. The AI did the mechanical work — calling the Key Vault API, formatting the SSH commands, handling the console server's interactive prompts — but I was the one saying "now you need to authenticate here, and the credentials are over there."
+**Here's the honest version:** I guided it through each authentication boundary. I told it *where* to find credentials, not *what* the credentials were. Corp creds from Bitwarden, switch creds from Azure Key Vault — two vaults, two auth hops. The AI did the mechanical work — calling the Bitwarden CLI, hitting the Key Vault API, formatting the SSH commands, handling the console server's interactive prompts — but I was the one saying "now you need to authenticate here, and the credentials are over there."
 
 It's a collaboration, not magic. But it's a collaboration where I never had to type a password into a terminal.
 
