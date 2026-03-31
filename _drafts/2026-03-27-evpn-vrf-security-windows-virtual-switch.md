@@ -124,13 +124,11 @@ Here's the part that makes this architecture interesting: the isolation model do
 
 ### How the Host Connects
 
-Each compute node has three NIC cards with specific roles:
+Each compute node connects to the fabric with a dual-port NIC:
 
 | Card | Function | Connection | Teaming |
 |------|----------|------------|---------|
 | Card 1 (OCP) | Compute + Management | Port A → TOR1, Port B → TOR2 (trunk) | Windows SET |
-| Card 2 (PCIe) | Cluster | Port A → TOR1 (VLAN 711), Port B → TOR2 (VLAN 712) | None (dedicated) |
-| Card 3 | Storage (FC/iSCSI/PowerFlex) | Fabric A + B | MPIO |
 
 **Card 1** is where the magic happens for workload isolation. Both ports connect as independent trunks carrying the management VLAN (native, untagged) plus all tenant VLANs. The Windows SET virtual switch teams these two physical NICs in **switch-independent mode** — no LACP, no port-channel. Each NIC appears as a standalone port to its respective TOR switch.
 
@@ -153,22 +151,6 @@ At every hop, the traffic is constrained:
 6. **EVPN RT** — control plane scoping of route advertisements
 
 A VM on the Accounting VLAN (201) can't reach IT Services (VLAN 301) resources unless the VRF is explicitly configured to route between those VNIs. And even then, you can apply route-map policies at the VRF level for granular control.
-
-### Cluster Isolation: Belt and Suspenders
-
-The cluster network (Card 2) takes isolation further. These ports are **dedicated access ports** — not trunked, not teamed. Port A on every node connects to TOR1 on VLAN 711, Port B connects to TOR2 on VLAN 712. Two completely separate Layer 2 domains for cluster heartbeat and CSV (Cluster Shared Volume) traffic.
-
-Why two separate VLANs instead of one? Fault isolation. If VLAN 711 has an issue, cluster traffic still flows on VLAN 712. Each path is independently monitorable. And because these are access ports (not trunks), there's no VLAN tag manipulation possible — the switch assigns the VLAN, period.
-
-QoS on these ports prioritizes what matters:
-
-| Priority | Traffic | Bandwidth | Why |
-|----------|---------|-----------|-----|
-| 3 | SMB (CSV + Live Migration) | 50% | Storage I/O can't be starved |
-| 7 | Cluster Heartbeat | 1% | Small packets, but must never drop |
-| 0 | Everything else | 49% | Default bucket |
-
-No PFC, no ECN needed here — this is TCP-based traffic (not RoCE/RDMA), so standard TCP retransmission handles occasional drops just fine.
 
 ---
 
@@ -200,7 +182,7 @@ If you're designing multi-tenant environments on any VXLAN/EVPN fabric with Hype
 
 **Don't forget the host layer.** The best fabric security means nothing if the virtual switch is misconfigured. Ensure trunk allowed lists match between the physical switch and the SET virtual switch config. Audit VM VLAN assignments against your VRF design.
 
-**Separate cluster traffic physically.** Dedicated NICs on dedicated access ports with dedicated VLANs. No trunking, no teaming. Cluster heartbeat and storage replication are the nervous system of your cluster — don't share that nervous system with tenant traffic.
+**Audit VM VLAN assignments regularly.** As tenants come and go, stale VLAN assignments can create unexpected reachability. Periodic audits of your VNI-to-VLAN-to-VRF mapping keep the isolation model honest.
 
 **Document your VNI-to-VLAN-to-VRF mapping.** This is your source of truth. When something breaks at 2 AM, you need to trace from a VM's VLAN tag through the VNI to the VRF and out to the RT. Make that path obvious.
 
