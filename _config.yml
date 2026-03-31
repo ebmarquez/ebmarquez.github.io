@@ -19,10 +19,10 @@ future: true
 
 title: Eric Marquez # the main title
 
-tagline: technology, projects, Food, and some code snippets # it will display as the sub-title
+tagline: networking, AI, data center infrastructure, and the occasional side quest # it will display as the sub-title
 
 description: >- # used by seo meta and the atom feed
-  Interesting technology, and things I learn throughout the week.
+  Principal Software Engineer Lead at Microsoft. Writing about data center networking, AI-assisted automation, and infrastructure.
 
 # fill in the protocol & hostname for your site, e.g., 'https://username.github.io'
 url: "https://ebmarquez.github.io"
