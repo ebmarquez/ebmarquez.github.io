@@ -91,19 +91,17 @@ Here's the physical topology I'm working with — a single-rack deployment with 
 
 Each VLAN maps to a unique VXLAN Network Identifier. Traffic entering a leaf switch on VLAN 201 gets encapsulated with VNI 10201 before traversing the fabric:
 
-| VLAN | VNI   | Purpose          | Subnet          | Anycast GW     |
-|------|-------|------------------|-----------------|----------------|
-| 7    | 10007 | Infrastructure   | 100.68.12.0/24  | 100.68.12.1    |
+| VLAN | VNI   | Purpose              | Subnet          | Anycast GW     |
+|------|-------|----------------------|-----------------|----------------|
+| 7    | 10007 | Infrastructure       | 100.68.12.0/24  | 100.68.12.1    |
 | 6    | 10006 | Network Virtualization | 100.71.189.0/24 | 100.71.189.1   |
-| 201  | 10201 | Tenant           | 100.78.108.0/23 | 100.78.108.1   |
-| 301  | 10301 | Logical Tenant   | 100.78.110.0/23 | 100.78.110.1   |
-| 500  | 10500 | L3 Forwarding    | 100.68.13.0/24  | 100.68.13.1    |
-| 600  | 10600 | Public VIP       | 100.64.72.0/23  | 100.64.72.1    |
-| 650  | 10650 | GRE              | 100.76.34.0/25  | 100.76.34.1    |
-| 711  | 10711 | Cluster Path 1   | 10.71.1.0/24    | 10.71.1.1      |
-| 712  | 10712 | Cluster Path 2   | 10.71.2.0/24    | 10.71.2.1      |
+| 201  | 10201 | Accounting           | 100.78.108.0/23 | 100.78.108.1   |
+| 301  | 10301 | IT Services          | 100.78.110.0/23 | 100.78.110.1   |
+| 500  | 10500 | Engineering          | 100.68.13.0/24  | 100.68.13.1    |
+| 600  | 10600 | HR & Operations      | 100.64.72.0/23  | 100.64.72.1    |
+| 650  | 10650 | Development / QA     | 100.76.34.0/25  | 100.76.34.1    |
 
-All VNIs for tenant-facing traffic live inside VRF `WORKLOAD`. The cluster VNIs (711/712) can stay in the default VRF or be placed in their own — they're isolated by design since cluster ports are dedicated access ports, not trunked.
+All tenant-facing VNIs live inside VRF `WORKLOAD`. Infrastructure and network virtualization VLANs are also in the VRF but serve the fabric itself rather than end-user workloads.
 
 ### Manual EVI: Explicit Control Over Your Overlay
 
@@ -134,7 +132,7 @@ Each compute node has three NIC cards with specific roles:
 | Card 2 (PCIe) | Cluster | Port A → TOR1 (VLAN 711), Port B → TOR2 (VLAN 712) | None (dedicated) |
 | Card 3 | Storage (FC/iSCSI/PowerFlex) | Fabric A + B | MPIO |
 
-**Card 1** is where the magic happens for workload isolation. Both ports connect as independent trunks carrying the management VLAN (native, untagged) plus all compute VLANs (6, 201, 301, 500, 600, 650). The Windows SET virtual switch teams these two physical NICs in **switch-independent mode** — no LACP, no port-channel. Each NIC appears as a standalone port to its respective TOR switch.
+**Card 1** is where the magic happens for workload isolation. Both ports connect as independent trunks carrying the management VLAN (native, untagged) plus all tenant VLANs. The Windows SET virtual switch teams these two physical NICs in **switch-independent mode** — no LACP, no port-channel. Each NIC appears as a standalone port to its respective TOR switch.
 
 ### The SET Virtual Switch: Bridge Between Physical and Virtual
 
@@ -149,12 +147,12 @@ The isolation chain looks like this:
 At every hop, the traffic is constrained:
 1. **Virtual switch** — only configured VLANs are permitted on VM adapters
 2. **Physical NIC** — SET team member carries only allowed VLANs (switch-independent, no LACP)
-3. **TOR switch port** — trunk allowed list restricts to VLANs 6,7,201,301,500,600,650
+3. **TOR switch port** — trunk allowed list restricts to the configured tenant VLANs
 4. **VXLAN encapsulation** — maps to specific VNI
 5. **VRF** — routing table isolation in the fabric
 6. **EVPN RT** — control plane scoping of route advertisements
 
-A VM on VLAN 201 can't reach VLAN 301 resources unless the VRF is explicitly configured to route between those VNIs. And even then, you can apply route-map policies at the VRF level for granular control.
+A VM on the Accounting VLAN (201) can't reach IT Services (VLAN 301) resources unless the VRF is explicitly configured to route between those VNIs. And even then, you can apply route-map policies at the VRF level for granular control.
 
 ### Cluster Isolation: Belt and Suspenders
 
