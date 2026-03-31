@@ -107,7 +107,7 @@ All tenant-facing VNIs live inside VRF `WORKLOAD`. Infrastructure and network vi
 
 In production VXLAN/EVPN fabrics, auto-derived EVI settings can sometimes cause unexpected behavior — especially at scale. Manual EVI configuration with explicit Route Distinguishers and Route Targets gives you full control:
 
-```nxos
+```text
 evpn
   evi 10201
     rd 100.71.93.149:10201
@@ -160,7 +160,7 @@ When you combine EVPN/VRF on the physical fabric with Windows virtual switch enf
 
 **1. No single point of policy enforcement.** Isolation is enforced at the VM, the virtual switch, the physical switch port, the VXLAN encapsulation, and the VRF. Compromising one layer doesn't compromise the others.
 
-**2. Control plane integrity.** EVPN distributes MAC/IP bindings via BGP with cryptographic session establishment (MD5/TCP-AO). Route targets ensure advertisements stay within their VRF scope. This isn't broadcast-based discovery — it's deterministic, verifiable forwarding.
+**2. Control plane integrity.** EVPN distributes MAC/IP bindings via BGP with authenticated session establishment (MD5 or TCP-AO). Route targets ensure advertisements stay within their VRF scope. This isn't broadcast-based discovery — it's deterministic, verifiable forwarding.
 
 **3. Reduced blast radius.** In a VLAN-only design, a compromised host in VLAN 201 can ARP scan the entire broadcast domain. With EVPN, the switch only has forwarding entries for endpoints it learned via BGP. Unknown unicast flooding is suppressed by default — the fabric won't forward traffic to destinations it hasn't learned.
 
