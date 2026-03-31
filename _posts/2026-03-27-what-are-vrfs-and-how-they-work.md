@@ -237,7 +237,7 @@ Now your VRF's connected routes are being advertised via BGP — but only within
 
 ## Up Next
 
-**Part 2: EVPN, VRFs, and the Windows Virtual Switch** — How VRF isolation extends across a multi-rack VXLAN fabric and what happens when the Windows virtual switch enters the picture. We'll dig into how EVPN carries VRF routes across the data center and where the security boundaries actually live. *Coming soon.*
+**Part 2: [EVPN, VRFs, and the Windows Virtual Switch](/posts/evpn-vrf-security-windows-virtual-switch/)** — How VRF isolation extends across a multi-rack VXLAN fabric and what happens when the Windows virtual switch enters the picture. We'll dig into how EVPN carries VRF routes across the data center and where the security boundaries actually live.
 
 ---
 
