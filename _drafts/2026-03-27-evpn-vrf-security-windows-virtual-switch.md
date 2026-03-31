@@ -136,14 +136,14 @@ Each compute node connects to the fabric with a dual-port NIC:
 
 The Hyper-V virtual switch in SET mode presents a single virtual switch to the OS and VMs while distributing traffic across both physical NICs using a hash-based algorithm (Hyper-V Port mode). Each VM's MAC address is pinned to one physical NIC for inbound traffic, while different VMs can be spread across different NICs. This is switch-independent — the TOR switches have no knowledge that these NICs are teamed. If TOR1 goes down, SET detects the link failure and remaps all affected MAC addresses to the surviving NIC connected to TOR2.
 
-But here's the security-relevant part: **the virtual switch enforces VLAN tagging on VM traffic**. When you create a VM network adapter and assign it to VLAN 201, the virtual switch tags that traffic with 802.1Q VLAN 201 before it hits the physical NIC. The TOR switch only allows VLANs explicitly configured in the trunk allowed list.
+But here's the security-relevant part: **the virtual switch enforces VLAN isolation through access port assignments.** When you configure a VM's virtual NIC on the vSwitch, you assign it to a specific VLAN as an access port — the VM sees a flat, untagged connection and has no awareness of VLANs. The vSwitch handles the 802.1Q tagging before traffic hits the physical NIC, and the TOR switch only allows VLANs explicitly configured in the trunk allowed list.
 
 The isolation chain looks like this:
 
 ![Isolation chain — VM to VRF, enforced at every hop](/assets/img/posts/2026-03-27/isolation-chain.png)
 
 At every hop, the traffic is constrained:
-1. **Virtual switch** — only configured VLANs are permitted on VM adapters
+1. **Virtual switch** — each VM connects as an access port; the vSwitch assigns the VLAN and handles tagging
 2. **Physical NIC** — SET team member carries only allowed VLANs (switch-independent, no LACP)
 3. **TOR switch port** — trunk allowed list restricts to the configured tenant VLANs
 4. **VXLAN encapsulation** — maps to specific VNI
@@ -180,11 +180,11 @@ If you're designing multi-tenant environments on any VXLAN/EVPN fabric with Hype
 
 **Manual EVI for large or multi-vendor fabrics.** Don't rely on auto-EVI in production. Explicit RD/RT configuration is more work upfront but eliminates surprises at scale.
 
-**Don't forget the host layer.** The best fabric security means nothing if the virtual switch is misconfigured. Ensure trunk allowed lists match between the physical switch and the SET virtual switch config. Audit VM VLAN assignments against your VRF design.
+**Don't forget the host layer.** The best fabric security means nothing if the virtual switch is misconfigured. Ensure trunk allowed lists match between the physical switch and the SET virtual switch config. Audit vSwitch port assignments against your VRF design.
 
-**Audit VM VLAN assignments regularly.** As tenants come and go, stale VLAN assignments can create unexpected reachability. Periodic audits of your VNI-to-VLAN-to-VRF mapping keep the isolation model honest.
+**Audit vSwitch port assignments regularly.** As tenants come and go, stale access port VLAN assignments on the vSwitch can create unexpected reachability. Periodic audits of your VNI-to-VLAN-to-VRF mapping keep the isolation model honest.
 
-**Document your VNI-to-VLAN-to-VRF mapping.** This is your source of truth. When something breaks at 2 AM, you need to trace from a VM's VLAN tag through the VNI to the VRF and out to the RT. Make that path obvious.
+**Document your VNI-to-VLAN-to-VRF mapping.** This is your source of truth. When something breaks at 2 AM, you need to trace from a VM's vSwitch port assignment through the VLAN, VNI, and VRF to the route target. Make that path obvious.
 
 ---
 
