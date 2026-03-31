@@ -78,13 +78,13 @@ EVPN Type-2 routes bind MAC addresses to IP addresses at the control plane level
 
 Here's the physical topology I'm working with — a single-rack deployment with spine-leaf that scales to multi-rack:
 
-![Spine-leaf topology with VXLAN/EVPN overlay and vPC leaf pair](/assets/img/posts/2026-03-27/spine-leaf-topology.png)
+![Spine-leaf topology with VXLAN/EVPN overlay and independent leaf switches](/assets/img/posts/2026-03-27/spine-leaf-topology.png)
 
 **Key design elements:**
 
 - **eBGP unnumbered** between leaves and spines — no IP addresses to manage on fabric links, no numbered /30s to track
-- **Dual-loopback model** — Loopback0 is the shared VTEP IP (same on both vPC peers: `100.71.93.148/32`), Loopback1 is the unique BGP router-ID (`100.71.93.149/32` and `.150/32`)
-- **vPC between TOR peers** — presents a single logical switch to the hosts while maintaining independent BGP sessions
+- **Dual-loopback model** — Loopback0 is the shared VTEP IP (`100.71.93.148/32`), Loopback1 is the unique BGP router-ID (`100.71.93.149/32` and `.150/32`)
+- **Independent leaf switches** — each TOR operates as a standalone EVPN leaf. No vPC or MLAG is required because Windows SET is switch-independent (no LACP) and EVPN anycast gateway provides redundant default gateways on every leaf
 - **EVPN overlay sessions** ride loopback-to-loopback (`ebgp-multihop 2`) to the border switches for route exchange
 
 ### VNI-to-VLAN Mapping
@@ -134,11 +134,11 @@ Each compute node has three NIC cards with specific roles:
 | Card 2 (PCIe) | Cluster | Port A → TOR1 (VLAN 711), Port B → TOR2 (VLAN 712) | None (dedicated) |
 | Card 3 | Storage (FC/iSCSI/PowerFlex) | Fabric A + B | MPIO |
 
-**Card 1** is where the magic happens for workload isolation. Both ports connect as trunks carrying the management VLAN (native, untagged) plus all compute VLANs (6, 201, 301, 500, 600, 650). The Windows SET virtual switch bonds these two physical NICs into one logical uplink.
+**Card 1** is where the magic happens for workload isolation. Both ports connect as independent trunks carrying the management VLAN (native, untagged) plus all compute VLANs (6, 201, 301, 500, 600, 650). The Windows SET virtual switch teams these two physical NICs in **switch-independent mode** — no LACP, no port-channel. Each NIC appears as a standalone port to its respective TOR switch.
 
 ### The SET Virtual Switch: Bridge Between Physical and Virtual
 
-The Hyper-V virtual switch in SET mode does something clever — it presents a single virtual switch to the OS and VMs while load-balancing traffic across both physical NICs connected to different TOR switches. If TOR1 goes down, all traffic flows through TOR2 seamlessly.
+The Hyper-V virtual switch in SET mode presents a single virtual switch to the OS and VMs while distributing traffic across both physical NICs using a hash-based algorithm (Hyper-V Port mode). Each VM's MAC address is pinned to one physical NIC for inbound traffic, while different VMs can be spread across different NICs. This is switch-independent — the TOR switches have no knowledge that these NICs are teamed. If TOR1 goes down, SET detects the link failure and remaps all affected MAC addresses to the surviving NIC connected to TOR2.
 
 But here's the security-relevant part: **the virtual switch enforces VLAN tagging on VM traffic**. When you create a VM network adapter and assign it to VLAN 201, the virtual switch tags that traffic with 802.1Q VLAN 201 before it hits the physical NIC. The TOR switch only allows VLANs explicitly configured in the trunk allowed list.
 
@@ -148,7 +148,7 @@ The isolation chain looks like this:
 
 At every hop, the traffic is constrained:
 1. **Virtual switch** — only configured VLANs are permitted on VM adapters
-2. **Physical NIC** — SET trunk carries only allowed VLANs
+2. **Physical NIC** — SET team member carries only allowed VLANs (switch-independent, no LACP)
 3. **TOR switch port** — trunk allowed list restricts to VLANs 6,7,201,301,500,600,650
 4. **VXLAN encapsulation** — maps to specific VNI
 5. **VRF** — routing table isolation in the fabric

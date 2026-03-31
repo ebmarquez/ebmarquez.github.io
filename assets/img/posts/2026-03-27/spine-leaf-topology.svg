@@ -36,14 +36,14 @@
   <text x="540" y="237" text-anchor="middle" fill="#e0e0e0" font-size="14" font-weight="bold">TOR2 (Leaf)</text>
   <text x="540" y="255" text-anchor="middle" fill="#a8d8ea" font-size="11">Nexus 93xx · ASN 64789</text>
 
-  <!-- vPC link -->
-  <line x1="355" y1="248" x2="445" y2="248" stroke="#e94560" stroke-width="2.5"/>
-  <text x="400" y="242" text-anchor="middle" fill="#e94560" font-size="10" font-weight="bold">vPC</text>
+  <!-- Independent leaves (no vPC) -->
+  <line x1="355" y1="248" x2="445" y2="248" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="400" y="242" text-anchor="middle" fill="#888" font-size="9">Independent</text>
 
   <!-- Compute Nodes -->
   <rect x="195" y="320" width="410" height="100" rx="8" fill="#16213e" stroke="#0f3460" stroke-width="1.5"/>
   <text x="400" y="350" text-anchor="middle" fill="#e0e0e0" font-size="14" font-weight="bold">20 Compute Nodes</text>
-  <text x="400" y="375" text-anchor="middle" fill="#a8d8ea" font-size="12">Card 1: SET trunk → TOR1 + TOR2</text>
+  <text x="400" y="375" text-anchor="middle" fill="#a8d8ea" font-size="12">Card 1: SET (switch-independent) → TOR1 + TOR2</text>
   <text x="400" y="395" text-anchor="middle" fill="#a8d8ea" font-size="12">Card 2: Cluster → TOR1 (711) + TOR2 (712)</text>
 
   <!-- TOR to Nodes links -->
@@ -51,5 +51,5 @@
   <line x1="540" y1="280" x2="480" y2="320" stroke="#a8d8ea" stroke-width="1.5"/>
 
   <!-- Caption -->
-  <text x="400" y="480" text-anchor="middle" fill="#888" font-size="12" font-style="italic">Spine-leaf with VXLAN/EVPN overlay and vPC leaf pair</text>
+  <text x="400" y="480" text-anchor="middle" fill="#888" font-size="12" font-style="italic">Spine-leaf with VXLAN/EVPN overlay — independent leaf switches, no vPC required</text>
 </svg>
