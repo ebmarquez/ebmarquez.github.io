@@ -55,9 +55,13 @@ With addresses planned, next came the routing design. Two decisions mattered:
 
 I had to nudge the AI on the spine ASN. It initially proposed a generic private ASN, but the lab's spine fabric had an existing convention: template-based peer configs, a specific prefix-list for inbound filtering, and a description format that encoded the leaf ASN, hostname, and role. I shared a sample config from a colleague, and Copilot pattern-matched it perfectly for our two new switches.
 
-## Deploying the Underlay
+## Deploying the Underlay — Carefully
 
-Configuration happened in layers, and this is where the human-AI collaboration pattern became clear: **I told it *what* to configure, and it figured out *how* to express it in SONiC's CLI.**
+Configuration happened in layers, and this is where the human-AI collaboration pattern became clear: **I told it *what* to configure, and it figured out *how* to express it in SONiC's CLI.** I also had to give it the AS numbers — 65337 for our leaf pair, 64805 for the Cisco spines — because that's environmental context the AI couldn't know.
+
+But here's the thing about working in a shared lab: **the leaf switches were mine to break, but the spine uplinks were not.** I didn't want Copilot to do something destructive and take down part of the lab's spine tier for that pod. That was a conversation I didn't feel like having. So instead of saying "deploy everything," I had it set up the environment step by step, verifying at each stage before moving to the next.
+
+The leaf-side configs — loopbacks, inter-switch links, iBGP — I let it run with confidence. But when we got to the spine-facing interfaces, I slowed it down. Each command reviewed before execution. Each `show` command run before the next `configure`. Trust, but verify.
 
 ### Layer 1: Loopbacks
 
@@ -185,13 +189,29 @@ All three BGP sessions: **ESTABLISHED**. The spines were sending 67 prefixes. Th
 
 But when I said "great, now make sure the loopbacks are reachable from the spine side" — silence. The spines couldn't reach `100.100.81.129` or `.130`. The ToR-to-spine P2P links pinged fine, but anything behind them was a black hole.
 
-The AI dug in. It checked the routing table on the spines. The ToR loopback routes were *there* — BGP had learned them. But the return path was the problem. The spines knew how to reach the ToR loopbacks (via the eBGP-learned routes), but the ToRs needed routes back to whatever the spines were sourcing from.
+The AI dug in. It checked routing tables, ran trace commands, compared advertisements. It couldn't find the problem. So I went digging myself.
 
-The issue was subtle: the spine's own P2P networks weren't being advertised back to the ToRs under the right routing context. The ToRs received 67 prefixes from the spines (the rest of the lab's routes), but the specific connected subnets on the spine-to-ToR links needed explicit `network` statements or `redistribute connected` under the correct address family.
+**The issue: VRFs.** The AI had done almost everything correctly. It matched the configuration style of the existing links on the spine switches. The interfaces looked right, the BGP neighbors looked right, the address families were activated. But it missed one critical detail — those pesky VRFs.
 
-This is a classic cross-vendor debugging exercise. SONiC on the ToR side, NX-OS on the spine side, and the problem lives in the gap between them. The AI diagnosed it by comparing what each side was advertising vs. receiving, traced it to the missing route advertisements, and proposed the fix.
+The spine uplink interfaces weren't placed in the correct VRF. And the BGP neighbors for our ToR peering weren't added under the right VRF context either. So BGP established (because the TCP session was up on the directly connected interfaces), but the routes were being installed in the wrong routing table. The spines *thought* they had routes to our loopbacks, but they were in the default VRF instead of the fabric VRF where everything else lived.
 
-After adjusting the spine configs, everything converged. The routing table on ToR A told the full story:
+Here's what made this interesting: **it's actually an easy oversight.** I didn't think of it myself initially. The AI had looked at the spine's existing config, seen the interface and BGP patterns, and replicated them faithfully — except for the VRF membership, which was a context it didn't fully grasp. Was that the AI's fault or mine? Honestly, it's shared. I didn't explicitly tell it about the VRF requirement, and it didn't infer it from the existing config where every other spine-facing interface had a VRF statement.
+
+Once I identified the issue, the fix was two lines on each spine:
+
+```
+! Add the interface to the correct VRF
+interface Ethernet1/27/4
+  vrf member FABRIC
+
+! Add the BGP neighbor under the VRF
+router bgp 64805
+  vrf FABRIC
+    neighbor 100.100.81.138
+      inherit peer Host-Leaf-65337
+```
+
+After that, everything converged. The routing table on ToR A told the full story:
 
 ```
 C>* 100.100.81.129/32  Direct  Loopback0
@@ -206,24 +226,28 @@ ToR A could see ToR B's loopback via the iBGP peer. Connected routes for all P2P
 
 `write memory` on both switches. Configs saved. Phase 1: **done.**
 
-## What the AI Got Right (and Where I Steered)
+## What the AI Got Right (and What It Missed)
 
 Let me be honest about the division of labor, because I think this matters more than any single configuration command.
 
 **What the AI handled on its own:**
 - IP addressing plan — clean, sequential, no wasted space
 - SONiC CLI syntax — the hierarchical BGP config mode, interface addressing, `write memory`
+- Pattern matching — it looked at existing spine configs and replicated the style (peer templates, description format, prefix-lists)
 - Verification — running show commands after each change, confirming state before moving on
 - Documentation — producing structured tables and config blocks I could review
 
 **Where I provided direction:**
-- The spine ASN (64805) and the existing template convention — the AI couldn't know this without seeing the existing fabric
+- The AS numbers (65337 leaf, 64805 spine) — environmental context the AI couldn't know
 - The eBGP design decision (not OSPF, not IS-IS) — I told it this was a leaf-spine eBGP Clos
-- The "no MCLAG" decision — I explicitly chose iBGP with independent forwarding over multi-chassis LAG
-- The port-group speed setting — I'd learned this from the colleague's sample configs and pointed the AI at the relevant section
-- Debugging direction during the "ESTABLISHED but broken" moment — I told it to check the spine routing table, not just the ToR side
+- Pace control on spine configs — step by step, verify before proceeding, because breaking the spine tier wasn't an option
+- The port-group speed setting — from a colleague's sample configs
+- Debugging the VRF issue — I had to investigate myself when the AI couldn't find the problem
 
-The pattern is clear: **the human provides architectural decisions and environmental context. The AI provides execution precision and documentation discipline.** Neither of us could have done this as efficiently alone. I'd have been slower on the CLI syntax (Dell SONiC's Klish is still unfamiliar to me). The AI would have been lost without knowing the spine fabric's conventions.
+**What the AI missed:**
+- **VRF membership on spine interfaces and BGP neighbors.** This was the big one. The AI matched every other aspect of the spine config style but didn't catch that interfaces and BGP peers needed to be in the `FABRIC` VRF. It's an easy oversight — I didn't think of it myself at first — but it's the kind of contextual understanding that separates "config looks right" from "config actually works."
+
+The question of whose fault it was is interesting. I didn't explicitly tell the AI about the VRF requirement. The AI didn't infer it from the existing configs where every other interface had a VRF statement. Shared blame, shared lesson: **always verify VRF context when integrating into an existing fabric.**
 
 ## What's Next
 
