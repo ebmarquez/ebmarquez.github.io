@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "Here's a /25 — Figure Out the Address Plan"
+title: "Here's a /26 — Figure Out the Address Plan"
 date: 2026-03-31 00:00:00 -0700
 categories: [networking, ai]
 tags: [sonic, copilot, ai, networking, bgp, automation, data-center]
 author: ebmarquez
-description: "I handed GitHub Copilot a /25 subnet and told it to plan IP addressing for a two-switch iBGP fabric with spine uplinks. Then we deployed it. Here's what happened."
+description: "I handed GitHub Copilot a /26 subnet and told it to plan IP addressing for a two-switch iBGP fabric with spine uplinks. Then we deployed it. Here's what happened."
 image:
   path: https://images.unsplash.com/photo-1558494949-ef010cbdcc31
   alt: "Data center network infrastructure with fiber optic cables"
@@ -19,13 +19,13 @@ Last time, the AI had mapped out two Dell S5248F-ON switches running SONiC — c
 
 I opened a new session with Copilot and said something like:
 
-> "Here's a /25 subnet — `100.100.81.128/25`. Plan the IP addressing for a two-switch iBGP fabric with uplinks to two Cisco spine switches. Then deploy it."
+> "Here's a /26 subnet — `100.100.81.128/26`. Plan the IP addressing for a two-switch iBGP fabric with uplinks to two Cisco spine switches. Then deploy it."
 
 And then I watched.
 
 ## 128 Addresses, Zero Room for Guessing
 
-A /25 gives you 128 addresses. That sounds generous until you start carving it up for a data center fabric. You need loopbacks for each switch (used as router IDs and VTEP sources for VXLAN later), point-to-point links between the two ToR switches, point-to-point links to each spine, and enough headroom for whatever comes next.
+A /26 gives you 64 addresses. That sounds generous until you start carving it up for a data center fabric. You need loopbacks for each switch (used as router IDs and VTEP sources for VXLAN later), point-to-point links between the two ToR switches, point-to-point links to each spine, and enough headroom for whatever comes next.
 
 Here's what Copilot produced:
 
@@ -227,7 +227,7 @@ The pattern is clear: **the human provides architectural decisions and environme
 
 ## What's Next
 
-The underlay is up. Both ToR switches have iBGP between them, eBGP to both Cisco spines, and a clean /25 address plan with room to grow. The EVPN address family is activated and waiting.
+The underlay is up. Both ToR switches have iBGP between them, eBGP to both Cisco spines, and a clean /26 address plan with room to grow. The EVPN address family is activated and waiting.
 
 Phase 2 is the overlay: VXLAN tunnels sourced from the loopbacks, VLANs mapped to VNIs, EVPN route exchange (Type-2 for MAC/IP, Type-3 for BUM traffic), and anycast gateways for inter-VLAN routing. That's where it gets interesting — and where the AI will need to navigate SONiC's VXLAN implementation, which has its own set of quirks.
 
