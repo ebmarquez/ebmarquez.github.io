@@ -7,8 +7,8 @@ tags: [sonic, copilot, ai, networking, bgp, automation, data-center]
 author: ebmarquez
 description: "I handed GitHub Copilot a /26 subnet and told it to plan IP addressing for a two-switch iBGP fabric with spine uplinks. Then we deployed it. Here's what happened."
 image:
-  path: https://images.unsplash.com/photo-1551703599-6b3e8379aa8c?w=1200&q=80
-  alt: "Enterprise network switch with fiber and ethernet cables connected in a data center rack"
+  path: https://images.unsplash.com/photo-1639322537228-f710d846310a?w=1200&q=80
+  alt: "Abstract dark network visualization with glowing neon nodes and connections"
 ---
 
 *This is Part 2 of a series about deploying SONiC switches with AI assistance. [Part 1](/posts/hey-copilot-can-you-ssh-into-a-switch/) covered discovery — pointing Copilot at two factory-blank switches and watching it map the hardware, topology, and CLI quirks. Now we configure things.*
