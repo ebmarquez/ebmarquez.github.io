@@ -23,7 +23,7 @@ I opened a new session with Copilot and said something like:
 
 And then I watched.
 
-## 128 Addresses, Zero Room for Guessing
+## 64 Addresses, Zero Room for Guessing
 
 A /26 gives you 64 addresses. That sounds generous until you start carving it up for a data center fabric. You need loopbacks for each switch (used as router IDs and VTEP sources for VXLAN later), point-to-point links between the two ToR switches, point-to-point links to each spine, and enough headroom for whatever comes next.
 
@@ -65,7 +65,7 @@ The leaf-side configs — loopbacks, inter-switch links, iBGP — I let it run w
 
 ### Layer 1: Loopbacks
 
-```
+```text
 interface Loopback 0
   ip address 100.100.81.129/32
   no shutdown
@@ -77,7 +77,7 @@ Straightforward. Same on ToR B with `.130`. The AI applied these through the ser
 
 The two ToR switches connect on Ethernet38 and Ethernet39 — the 25G DAC links we'd discovered in Part 1.
 
-```
+```text
 interface Ethernet 38
   ip address 100.100.81.132/31
   no shutdown
@@ -95,13 +95,13 @@ This one required a physical-layer detour. The spine uplinks use 10G SR optics (
 
 The fix: set the port-group speed to 10G.
 
-```
+```text
 port-group 12 speed 10000
 ```
 
 On the spine side (Cisco NX-OS), the 40G QSFP ports needed breakout configuration to get down to 10G per lane:
 
-```
+```text
 interface breakout module 1 port 27 map 10g-4x
 interface breakout module 1 port 28 map 10g-4x
 ```
@@ -123,7 +123,7 @@ With the underlay addressed and reachable, time for routing. The AI configured B
 
 **ToR A:**
 
-```
+```text
 router bgp 65337
   router-id 100.100.81.129
   log-neighbor-changes
@@ -158,7 +158,7 @@ ToR B mirrored the config with its own router ID (`.130`) and the complementary 
 
 The spine-side config used the existing peer template convention:
 
-```
+```text
 ! On each spine (router bgp 64805)
 template peer Host-Leaf-65337
   remote-as 65337
@@ -178,7 +178,7 @@ And then we hit the moment every network engineer knows and dreads.
 
 `show bgp ipv4 unicast summary` on ToR A:
 
-```
+```text
 Neighbor        AS    MsgRcvd  MsgSent  Up/Down   State/PfxRcd
 100.100.81.133  65337    42       45    00:12:34   2
 100.100.81.137  64805    38       41    00:10:22   67
@@ -199,7 +199,7 @@ Here's what made this interesting: **it's actually an easy oversight.** I didn't
 
 Once I identified the issue, the fix was two lines on each spine:
 
-```
+```text
 ! Add the interface to the correct VRF
 interface Ethernet1/27/4
   vrf member FABRIC
@@ -213,7 +213,7 @@ router bgp 64805
 
 After that, everything converged. The routing table on ToR A told the full story:
 
-```
+```text
 C>* 100.100.81.129/32  Direct  Loopback0
 B>* 100.100.81.130/32  via 100.100.81.133  Ethernet38
 C>* 100.100.81.132/31  Direct  Ethernet38
