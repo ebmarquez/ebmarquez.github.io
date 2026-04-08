@@ -7,8 +7,8 @@ tags: [sonic, gnmi, telemetry, grpc, openconfig, networking, data-center]
 author: ebmarquez
 description: "SSH is not a monitoring protocol. Dell SONiC ships with gNMI telemetry out of the box — persistent streaming, structured data, and zero admin lockout. Here's how it works."
 image:
-  path: https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80
-  alt: "Abstract digital network visualization with glowing blue connections"
+  path: /assets/img/posts/2026-04-07/stop-sshing-hero.png
+  alt: "Terminal screen showing streaming gNMI telemetry data from a network switch — BGP neighbor states, interface counters, and CPU metrics"
 ---
 
 *This is Part 3 of a series about deploying SONiC switches with AI assistance. [Part 1](/posts/hey-copilot-can-you-ssh-into-a-switch/) covered discovery. [Part 2](/posts/heres-a-25-figure-out-the-address-plan/) covered IP planning and BGP deployment. Now we monitor.*
