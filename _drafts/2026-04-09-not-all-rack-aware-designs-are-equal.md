@@ -7,8 +7,8 @@ tags: [azure-local, networking, rdma, data-center, hci, rack-aware]
 author: ebmarquez
 description: "Azure Local gives you four network designs for rack-aware clusters. The official docs describe them. Here's which one to actually pick — and why."
 image:
-  path: https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&q=80
-  alt: "Data center network infrastructure"
+  path: https://images.unsplash.com/photo-1513828583688-c52646db42da?w=1200&q=80
+  alt: "Two industrial warehouse buildings side by side — two rooms, one cluster"
 ---
 
 ## Four Network Designs, One Brutal Constraint
