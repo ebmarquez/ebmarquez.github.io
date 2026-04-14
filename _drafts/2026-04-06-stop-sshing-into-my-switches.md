@@ -1,175 +1,138 @@
 ---
 layout: post
 title: "Stop SSHing Into My Switches"
-date: 2026-04-06
+date: 2026-04-06 12:00:00 -0700
 categories: [networking, ai]
 tags: [sonic, gnmi, telemetry, grpc, openconfig, networking, data-center]
 author: ebmarquez
+description: "Dell SONiC ships with gNMI telemetry running out of the box on port 8080. Here's what that means for how you monitor your fabric — and why SSH was never meant for this job."
 image:
-  path: https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&q=80
-  alt: "Glowing fiber optic strands representing real-time data streaming through a network"
+  path: https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80
+  alt: "Abstract digital network visualization with glowing blue connections"
 ---
 
-There's a moment every network engineer eventually hits: you're trying to log in to a switch to debug something, and you get hit with "maximum sessions reached." Somewhere, a monitoring script has been squatting on your SSH sessions like a bad houseguest. The switch is fine — you just can't get in to prove it.
-
-This happened to me with our Dell S5248F-ON switches running SONiC. The fix wasn't configuration tuning. It was rethinking the whole approach to monitoring. Enter **gNMI** — gRPC Network Management Interface — and the moment I discovered that Dell Enterprise SONiC ships it ready to go on port 8080, no extra setup required.
-
-This is Post 3 in a series about deploying SONiC switches with AI assistance. [Post 1](/posts/hey-copilot-can-you-ssh-into-a-switch) covered initial discovery, [Post 2](/posts/heres-a-25-figure-out-the-address-plan) covered IP planning and BGP. This one is where we get into the telemetry architecture — and it's the most technically dense of the bunch. Grab a coffee.
+*This is Part 3 of a series about deploying SONiC switches with AI assistance. [Part 1](/posts/hey-copilot-can-you-ssh-into-a-switch/) covered discovery — pointing Copilot at two factory-blank Dell S5248F-ON switches. [Part 2](/posts/heres-a-25-figure-out-the-address-plan/) covered IP addressing and BGP. Now we monitor the thing.*
 
 ---
 
-## The SSH Problem Is Real
+Picture this: you've built a beautiful little two-switch iBGP fabric. BGP sessions are up, routes are being exchanged, life is good. And then someone — maybe a monitoring tool, maybe a well-intentioned script, maybe past-you — opens an SSH session to one of the switches and just... leaves it there. Polling `show interfaces` every 30 seconds. Parsing text output like it's 2004.
 
-Let me be specific about what happened, because this is worth understanding before we get to solutions.
+Then you try to SSH in to check something.
 
-SONiC switches have a limited number of concurrent SSH sessions. On our S5248F-ON switches, that's a small number — on the order of one or two concurrent connections. When a monitoring process holds an SSH session open (polling `show` commands, parsing text output, doing it again in 30 seconds), it's occupying one of those slots permanently.
+Denied. Session limit reached.
 
-The moment you actually need to log in and do something — check a BGP flap, review interface errors, look at a log — you might find yourself locked out. The monitoring tool is "working," burning your admin access in the process.
+Congratulations, your monitoring tool has locked you out of your own switch. This is not a hypothetical. This happened. And it's the most preventable kind of pain, because Dell Enterprise SONiC ships with a proper telemetry solution already running — on port 8080, right now, waiting for you to notice it.
 
-Beyond the lockout problem, SSH-based monitoring is just fundamentally the wrong tool:
-
-| Approach | Transport | Streaming | Session Cost | Data Format |
-|---|---|---|---|---|
-| SSH/CLI | SSH | ❌ Polling only | **High — holds shell session** | Unstructured text |
-| SNMP | UDP | ⚠️ Traps only | Low | Structured but limited |
-| RESTCONF | HTTPS | ❌ Polling only | Low | Structured JSON |
-| **gNMI** | **gRPC/HTTP2** | **✅ Native streaming** | **None — separate process** | **Structured protobuf** |
-
-gNMI's `telemetry` process on SONiC runs completely independently from the SSH/CLI session manager. It can handle multiple simultaneous subscribers without touching your admin session count. One persistent HTTP/2 connection to the switch carries everything.
-
-That's the headline. Now let's talk about how it actually works.
+Let me tell you about gNMI.
 
 ---
 
-## What is gNMI?
+## SSH Is Not a Monitoring Protocol
 
-gNMI stands for **gRPC Network Management Interface**. It's a protocol defined by the [OpenConfig](https://www.openconfig.net/) consortium for network device management and telemetry. Under the hood, it's gRPC (Google Remote Procedure Call) running over HTTP/2, using protobuf for encoding.
+This feels obvious in retrospect, but it took getting locked out of a switch to really drive it home.
 
-If you've never worked with gRPC before: think of it as a framework for defining typed remote procedure calls, where the wire format is binary protobuf instead of text JSON. It's faster and more efficient than REST, and crucially, it supports **bidirectional streaming** — the server can push data to the client continuously, not just in response to requests.
+SSH was designed for interactive administration. It's great for that. You connect, you type commands, you get answers, you disconnect. The problem is that it holds a *session* — a shell process on the switch, a connection counted against a hard limit. Dell SONiC switches aren't servers with 256 concurrent sessions available. Depending on the platform, you might have two or three SSH sessions maximum before new connections start getting refused.
 
-### The Four RPCs
+Now imagine a monitoring tool that opens an SSH session, runs `show interface status`, parses the ASCII table output, closes the connection — and does this every 30 seconds for every interface, across multiple switches. You've just created:
 
-gNMI defines exactly four remote procedure calls in its `gnmi.proto` service definition:
+- **Session churn** — constant connect/disconnect cycles that stress the switch's SSH daemon
+- **Text parsing fragility** — one firmware update changes the column widths and your monitoring breaks
+- **Admin lockout risk** — if the tool holds sessions open or hits the limit during a polling cycle, you're locked out right when you most want to be in
 
-**1. Capabilities** — Discovery. Ask the device what YANG models it supports, what encodings it can use, what gNMI version it's running. Always start here when connecting to a new device.
+The comparison table from the gNMI spec makes this stark:
 
-**2. Get** — One-shot read. Send a list of paths, get back the current state. Stateless, like a REST GET. Great for on-demand queries: "give me the current BGP neighbor table" or "what firmware version is this running?"
+| | gNMI | RESTCONF | SSH/CLI |
+|---|---|---|---|
+| **Streaming** | ✅ Native | ❌ Polling only | ❌ Screen scraping |
+| **Concurrent sessions** | Many (multiplexed on one TCP) | Many (HTTP pooling) | **Limited (often 1-2)** |
+| **Admin lockout risk** | None | None | **High** |
+| **Data format** | Structured protobuf/JSON | Structured JSON | Unstructured text |
 
-**3. Set** — Configuration push. Update, replace, or delete configuration subtrees. We're not using this yet (read-only for now), but this is how gNMI replaces Jinja2 templates + SSH config push.
-
-**4. Subscribe** ⭐ — **This is the star.** A bidirectional streaming RPC where you send a list of paths and modes, and the server pushes state updates to you indefinitely. BGP session goes from ESTABLISHED to IDLE? You know immediately. Interface counter sampled every 10 seconds? It flows to you on schedule. The stream stays open on a single HTTP/2 connection.
-
-### HTTP/2 and Why Multiplexing Matters
-
-gRPC's use of HTTP/2 isn't just a transport detail — it's what makes the whole thing efficient at scale.
-
-HTTP/2 multiplexes multiple logical streams over a single TCP connection. That means your dashboard can have a Subscribe stream for BGP state, a Subscribe stream for interface counters, and fire off an independent Get request for platform info — all over **one TCP connection** to the switch, with no blocking between them.
-
-```
-Dashboard ──── single TCP connection ────▶ ToR Switch (:8080)
-               │
-               ├── HTTP/2 stream 1: Subscribe RPC
-               │     Client → Switch: subscribe(BGP neighbors, ON_CHANGE)
-               │     Switch → Client: notification (BGP state changed) ← immediate
-               │     Switch → Client: notification (counter sample) ← every 10s
-               │     Switch → Client: ...  (stream stays open)
-               │
-               └── HTTP/2 stream 3: Get RPC (runs concurrently, doesn't block stream 1)
-                     Client → Switch: get(platform info)
-                     Switch → Client: GetResponse
-```
-
-Contrast this with SSH: each SSH session is a dedicated TCP connection holding an interactive shell. It doesn't multiplex. It doesn't stream. It blocks while the CLI processes your command and formats output as human-readable text that your code has to parse.
+There's a better way. It's been running on your SONiC switch this whole time.
 
 ---
 
-## Dell SONiC Ships gNMI Out of the Box
+## What Even Is gNMI?
 
-Here's the thing that surprised me when I started digging into this: **Dell Enterprise SONiC doesn't require any extra configuration to enable gNMI**. It's running on port 8080 by default, waiting for connections.
+**gNMI** — gRPC Network Management Interface — is a network management protocol from the OpenConfig project. It uses gRPC (Google Remote Procedure Call) over HTTP/2 for both configuration and telemetry. Think of it as the modern, purpose-built replacement for SNMP that doesn't require you to hate your life.
+
+The key properties:
+
+- **Transport:** gRPC over HTTP/2 — binary framing, multiplexed streams, persistent connections
+- **Encoding:** Protobuf (binary wire format) with JSON_IETF for the actual data payloads
+- **Data model:** OpenConfig YANG — a vendor-neutral, tree-structured schema for network state
+- **Auth:** Username/password via gRPC metadata headers (simple, no SNMP community strings)
+
+On Dell Enterprise SONiC, gNMI runs as the `telemetry` process:
 
 ```bash
 $ ps aux | grep telemetry
 root  34778  /usr/sbin/telemetry -logtostderr --port 8080 ...
 ```
 
-The `telemetry` process is part of the SONiC container architecture. It handles gNMI independently from `sshd` — separate process, separate port, separate connection management. Authentication is via gRPC metadata headers (username/password in the request, not TLS client certificates).
-
-For a lab environment, the connection is plaintext gRPC — no TLS to wrestle with:
-
-```typescript
-import * as grpc from '@grpc/grpc-js';
-
-// Plaintext gRPC — port 8080 on Dell SONiC
-const client = new gnmiService.gNMI(
-  '100.100.81.129:8080',
-  grpc.credentials.createInsecure()
-);
-
-// Auth goes in metadata headers, not the connection itself
-const metadata = new grpc.Metadata();
-metadata.add('username', 'admin');
-metadata.add('password', 'your-switch-password');
-```
-
-In production you'd enable TLS on the gNMI port — but for getting started, `createInsecure()` means you're streaming live telemetry in an afternoon, not fighting certificate management.
+Port 8080, plaintext gRPC, no TLS, no extra configuration required. It's just there. I found it by accident while exploring what processes were listening on the switch. That accidental discovery fundamentally changed how I thought about monitoring this fabric.
 
 ---
 
-## Subscribe Modes: ON_CHANGE vs SAMPLE
+## The Four RPCs (But Really You Want One of Them)
 
-The Subscribe RPC has a layered mode system. At the top level, you choose a stream type:
+gNMI defines four operations — RPCs in gRPC terminology:
 
-- **STREAM** — Persistent. Server pushes until you disconnect. This is what you want for dashboards.
-- **ONCE** — Server sends current state then closes the stream. Good for one-shot snapshots.
-- **POLL** — Client-driven. You send explicit poll requests, server responds. Useful when you control the polling schedule.
+**Capabilities** — "What do you support?" Returns the YANG models and encodings the device understands. Useful for discovery, rarely needed in day-to-day operation.
 
-Within a STREAM subscription, you configure a mode **per path**:
+**Get** — "Give me this data, right now." A stateless, one-shot query. Send a list of OpenConfig paths, get back the current state. Similar to a RESTCONF GET but over gRPC. Good for on-demand queries: what firmware are you running, what's your hostname, what's your HwSKU.
 
-| Mode | Behavior | Best for |
-|---|---|---|
-| `ON_CHANGE` | Push only when the value changes | BGP session state, interface oper-status |
-| `SAMPLE` | Push at a fixed time interval | CPU utilization, memory, interface counters |
-| `TARGET_DEFINED` | Device picks the best mode | System state, hostname |
+**Set** — "Change this config." The gNMI way to push configuration changes. We're not using this for monitoring, but it's how gNMI can eventually replace CLI-driven config management.
 
-The combination is powerful. In a single Subscribe request, you can say:
+**Subscribe** — ⭐ This one. This is the whole point.
 
-- "Give me BGP neighbor state changes immediately when they happen"
-- "Sample interface counters every 10 seconds"
-- "Sample CPU every 15 seconds"
+Subscribe is a bidirectional streaming RPC. You send a `SubscribeRequest` with a list of OpenConfig paths and subscription modes. The switch starts pushing `SubscribeResponse` messages containing data updates — and keeps pushing them, forever, until you disconnect. One persistent HTTP/2 connection. Multiple paths. Real-time data.
 
-All of these paths and modes go into one Subscribe request, and all the resulting notifications flow back on one HTTP/2 stream.
+This is the architecture SSH can never replicate.
 
-Here's what our subscription configuration looks like in practice:
+---
+
+## The Subscribe Modes (This Is Where It Gets Good)
+
+Subscribe isn't just "stream everything constantly." It gives you fine-grained control over *how* each path is delivered:
+
+**`ON_CHANGE`** — Only send an update when the value actually changes. This is perfect for state-driven data like BGP session status or interface operational state. Your monitoring system gets notified the instant a BGP neighbor goes from `ESTABLISHED` to `IDLE`. Not on the next polling cycle — *the instant it happens*.
+
+**`SAMPLE`** — Send an update at a fixed interval regardless of whether the value changed. Perfect for counters and utilization metrics. Interface traffic, CPU utilization, memory usage — things you want to graph over time.
+
+**`TARGET_DEFINED`** — Let the device decide which mode makes more sense. Useful for system state paths where you don't care about the specifics.
+
+Here's how our subscription configuration looks in practice:
 
 ```typescript
 const STREAM_SUBSCRIPTIONS = [
-  // BGP neighbors — ON_CHANGE: instant notification on session flap
+  // BGP neighbor state — push immediately on any state change
   {
     path: '/network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors',
     mode: 'ON_CHANGE'
   },
 
-  // Interface oper-status — ON_CHANGE: instant link-flap detection
+  // Interface operational state — push on link flap
   {
     path: '/interfaces/interface/state',
     mode: 'ON_CHANGE'
   },
 
-  // Interface counters — SAMPLE every 10 seconds
+  // Interface counters — sample every 10 seconds
   {
     path: '/interfaces/interface/state/counters',
     mode: 'SAMPLE',
-    sampleInterval: 10_000_000_000  // ← nanoseconds. We'll get to this.
+    sampleInterval: 10_000_000_000  // nanoseconds!
   },
 
-  // CPU utilization — SAMPLE every 15 seconds
+  // CPU utilization — sample every 15 seconds
   {
     path: '/system/cpus/cpu[index=ALL]/state',
     mode: 'SAMPLE',
     sampleInterval: 15_000_000_000
   },
 
-  // Memory — SAMPLE every 15 seconds
+  // Memory utilization — sample every 15 seconds
   {
     path: '/system/memory/state',
     mode: 'SAMPLE',
@@ -178,227 +141,205 @@ const STREAM_SUBSCRIPTIONS = [
 ];
 ```
 
-### The Nanosecond Gotcha
-
-About that `sampleInterval`. Look at that number: `10_000_000_000`. That's ten billion. Ten seconds expressed in **nanoseconds**.
-
-The gNMI spec defines `sampleInterval` in nanoseconds. Not milliseconds. Not seconds. Nanoseconds.
-
-This is the kind of thing that costs you an hour of debugging. We initially set interval values in milliseconds thinking "10000 for 10 seconds" — and the switch started flooding us with counter updates at microsecond rates. The dashboard couldn't keep up. Logs were filling. The gNMI stream was basically a firehose.
-
-Once we found the spec and added nine zeros, everything calmed down. But it's not intuitive, and I've seen it trip up other people too. If your SAMPLE subscription is pushing far more data than expected: check your nanoseconds.
-
-```typescript
-// WRONG — this is 10 milliseconds
-sampleInterval: 10_000
-
-// WRONG — this is 10 seconds in milliseconds
-sampleInterval: 10_000_000
-
-// RIGHT — this is 10 seconds in nanoseconds
-sampleInterval: 10_000_000_000
-```
+You probably noticed `sampleInterval: 10_000_000_000` for a 10-second interval. That's not a typo. We'll get to that.
 
 ---
 
-## OpenConfig Paths That Actually Work on Dell SONiC
+## The HTTP/2 Advantage
 
-gNMI uses structured paths based on YANG models. With the `origin: 'openconfig'` flag, you're querying the OpenConfig vendor-neutral models. Here's what we've confirmed works on Dell Enterprise SONiC:
+gRPC runs over HTTP/2, and that matters more than it sounds. HTTP/2 supports *multiplexed streams* on a single TCP connection — meaning you can have multiple concurrent RPCs (a Subscribe stream, a Get request, another Get request) all running simultaneously on one connection without blocking each other.
 
-**BGP neighbor state** — Everything you'd want: peer AS, session state (ESTABLISHED/ACTIVE/IDLE/etc.), prefixes sent/received, message counts, established transition count, last state change. ON_CHANGE mode means BGP flaps hit your dashboard in milliseconds.
+For monitoring two switches, the connection model looks like this:
 
+```
+Dashboard ──── single TCP connection ────► ToR Switch (:8080)
+                    │
+                    ├─ HTTP/2 stream 1: Subscribe RPC (stays open forever)
+                    │   ├─ client → server: SubscribeRequest (paths + modes)
+                    │   ├─ server → client: Notification (BGP state)
+                    │   ├─ server → client: Notification (CPU sample)
+                    │   ├─ server → client: Notification (counter sample)
+                    │   └─ ... ongoing stream
+                    │
+                    └─ HTTP/2 stream 3: Get RPC (concurrent, on-demand)
+                        ├─ client → server: GetRequest (platform info)
+                        └─ server → client: GetResponse
+```
+
+One TCP connection per switch handles everything. The switch's `telemetry` process manages this completely independently from the SSH/CLI session manager. You're not competing with admins for sessions. You're not touching the session limit at all.
+
+---
+
+## Connecting to gNMI From Node.js
+
+The gNMI proto definition lives at [openconfig/gnmi](https://github.com/openconfig/gnmi). Once you have that, connecting from Node.js with `@grpc/grpc-js` is straightforward:
+
+```typescript
+import * as grpc from '@grpc/grpc-js';
+import * as protoLoader from '@grpc/proto-loader';
+
+// Load the gnmi.proto definition
+const packageDefinition = protoLoader.loadSync('gnmi.proto', {
+  keepCase: false,
+  longs: String,
+  enums: String,
+  defaults: true,
+  oneofs: true,
+});
+const proto = grpc.loadPackageDefinition(packageDefinition);
+const gnmiService = (proto as any).gnmi;
+
+// Create insecure channel — Dell SONiC runs plaintext gRPC on port 8080
+const client = new gnmiService.gNMI(
+  '100.100.81.129:8080',
+  grpc.credentials.createInsecure()
+);
+
+// Auth via metadata headers
+const metadata = new grpc.Metadata();
+metadata.add('username', 'admin');
+metadata.add('password', 'your-switch-password');
+```
+
+`grpc.credentials.createInsecure()` — yes, it's plaintext. In a lab environment that's fine. In production you'd configure TLS on the switch and use proper certificates. For internal lab networks where you trust the L2 segment, plaintext avoids the certificate management overhead and gets you running immediately.
+
+---
+
+## OpenConfig Paths That Actually Work
+
+The OpenConfig YANG tree is extensive, and not all of it is implemented on every device. Here are the paths we've validated on Dell Enterprise SONiC, and what they return:
+
+**BGP Neighbors:**
 ```
 /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors
 ```
+Returns all BGP neighbor state — peer AS, session state (`ESTABLISHED`, `IDLE`, `ACTIVE`, etc.), prefixes received/sent, established transitions, message counts. With `ON_CHANGE`, you get instant notification when a BGP session flaps. No polling lag, no "I wonder if that was transient" ambiguity.
 
-**Interface state** — Operational status, admin status, speed, MTU for every interface. ON_CHANGE catches link flaps instantly.
-
+**Interface State:**
 ```
 /interfaces/interface/state
 ```
+Returns `oper-status`, `admin-status`, speed, and MTU for all interfaces. `ON_CHANGE` gives you real-time link-flap detection. The moment Ethernet38 goes down, your dashboard knows.
 
-**Interface counters** — In/out octets, unicast packet counts, errors, discards. Great for traffic graphs at 10-second resolution.
-
+**Interface Counters:**
 ```
 /interfaces/interface/state/counters
 ```
+In-octets, out-octets, unicast packets, errors, discards. Sampled at 10-second intervals, these are your traffic graphs. Convert octets-per-interval to bits-per-second and you have bandwidth utilization without any SNMP community strings.
 
-**CPU utilization** — Per-CPU or aggregate stats: user time, system time, idle. We calculate `cpuPercent = (user + system) / (user + system + idle) * 100`.
-
+**CPU Utilization:**
 ```
 /system/cpus/cpu[index=ALL]/state
 ```
+Returns per-CPU stats: user time, system time, idle time. We calculate `cpuPercent = (user + system) / (user + system + idle) * 100`. The `[index=ALL]` key gives you aggregate stats across all cores.
 
-**Memory** — Physical (total) and used memory in bytes. Divide, multiply by 100, you've got a percentage.
-
+**Memory:**
 ```
 /system/memory/state
 ```
+Returns `physical` (total) and `used` in bytes. Simple, clean, no parsing required.
 
-**System state** — Hostname, boot time, current datetime. Fetched once with a Get on startup rather than streamed.
-
+**System State (Get, not Subscribe):**
 ```
 /system/state
 ```
-
-**Platform/components** — Hardware info: HwSKU, firmware version, ASIC type, serial number. Also a one-time Get, not a stream.
-
-```
-/components/component/state
-```
-
-### The 40/60 Reality
-
-Here's an honest assessment: OpenConfig covers roughly 40% of what you need to fully manage a production data center fabric.
-
-The 40% that works great: BGP underlay, interface state and counters, CPU/memory/system metrics, basic LLDP, ACLs. This is your monitoring core — and it works cross-vendor, which is the whole point.
-
-The 60% that OpenConfig can't reach: EVPN/VXLAN configuration and state, PFC and ECN settings for lossless Ethernet (critical for RoCE workloads), buffer management, MCLAG/multi-chassis LAG, port breakout configuration, hardware resource utilization (ASIC CRM tables).
-
-For those things, you need **vendor-native YANG models**. On SONiC, that means the `sonic-*` model family — `sonic-vxlan.yang`, `sonic-pfc.yang`, `sonic-mclag.yang`, etc. These map directly to SONiC's Redis CONFIG_DB and STATE_DB tables. They're more powerful and more complete than OpenConfig for SONiC-specific features. They're also not portable — a `sonic-pfc` path means nothing on a Cisco switch.
-
-The right approach: use OpenConfig for everything it covers (monitoring, common state, cross-vendor consistency), and reach for native models when you need to go deeper. This isn't an either/or choice — the SubscriptionManager can mix both in the same session.
+Hostname, boot-time, current-datetime, switching-mode. Fetched once at startup via a Get RPC — this doesn't change frequently enough to warrant streaming.
 
 ---
 
-## Parsing Notifications: The Prefix+Path Trap
+## The Nanosecond Gotcha
 
-When gNMI sends you a notification, it looks like this:
+I promised we'd get back to this:
+
+```typescript
+sampleInterval: 10_000_000_000  // 10 seconds
+```
+
+The `sampleInterval` field in a gNMI SubscriptionList is specified in **nanoseconds**. Not milliseconds. Not seconds. Nanoseconds.
+
+10 seconds = 10,000,000,000 nanoseconds.
+
+When we first wired this up, I set `sampleInterval: 10000` thinking I was setting 10 seconds (because everything else in the JS ecosystem is milliseconds). Instead I was requesting samples every 10 *microseconds*. The switch obliged, enthusiastically. Counter updates flooded in at rates that made the Node.js event loop very unhappy.
+
+The fix is obvious once you know. The diagnosis was not fun. Put it in a constant:
+
+```typescript
+const NANOSECONDS_PER_SECOND = 1_000_000_000;
+const TEN_SECONDS = 10 * NANOSECONDS_PER_SECOND;
+```
+
+Your future self will thank you.
+
+---
+
+## Parsing What Comes Back
+
+gNMI Notifications have a specific structure you need to understand to extract data correctly:
 
 ```typescript
 interface Notification {
-  timestamp: string;        // nanoseconds since epoch (yes, nanoseconds again)
-  prefix?: Path;            // common prefix shared by all updates in this notification
-  update: Update[];         // list of path+value pairs
-  delete?: Path[];          // paths that were deleted (e.g., BGP neighbor removed)
+  timestamp: string;    // nanoseconds since epoch
+  prefix?: Path;        // common path prefix for all updates
+  update: Update[];     // list of path+value pairs
 }
 
 interface Update {
-  path: Path;               // RELATIVE to the prefix
+  path: Path;           // relative path (combined with prefix for full path)
   val: {
-    jsonIetfVal?: string;   // JSON string that needs parsing — most common on SONiC
+    jsonIetfVal?: string;  // JSON string that needs parsing (most common on SONiC)
     stringVal?: string;
     intVal?: string;
-    uintVal?: string;
     boolVal?: boolean;
   };
 }
 ```
 
-The part that bites people: **you must combine `prefix` + each update's `path` to get the full OpenConfig path**. The prefix is a common ancestor shared by all updates in a notification batch. The individual update paths are relative to that prefix.
+Two things trip people up here:
 
-If you only look at the update path and ignore the prefix, you'll misclassify events — an interface counter update looks like just `state/counters` when it's actually `/interfaces/interface[name=Ethernet38]/state/counters`.
+**1. The prefix+path combination.** Notifications use a `prefix` (common path prefix) plus per-update `path` (relative path). You must combine both to get the full OpenConfig path. If you only look at the update path, you'll misclassify events — a BGP update and an interface update might look similar if you're ignoring the prefix.
 
-```typescript
-function getFullPath(prefix: Path | undefined, updatePath: Path): string {
-  const prefixElems = prefix?.elem ?? [];
-  const pathElems = updatePath.elem ?? [];
-  return '/' + [...prefixElems, ...pathElems]
-    .map(e => e.key ? `${e.name}[${Object.entries(e.key).map(([k,v]) => `${k}=${v}`).join(',')}]` : e.name)
-    .join('/');
-}
-```
-
-### The syncResponse Signal
-
-When you first open a Subscribe STREAM, the device sends an initial burst of notifications — the current state of everything you subscribed to. After that initial dump is complete, it sends a special `syncResponse: true` message. This is your "ready" signal.
-
-Before `syncResponse`: you're receiving initial state. Don't show the dashboard as "streaming live" yet — it's still loading.
-
-After `syncResponse`: everything that arrives is a real-time change. Now you're streaming.
+**2. `syncResponse`.** After you open a Subscribe stream, the switch sends a burst of Notifications representing the current state of everything you subscribed to. Then it sends `syncResponse: true`. This is your signal that you now have a complete snapshot of current state — everything after this is real-time changes. Don't show "streaming live data" in your UI until you've received `syncResponse`. Before that, you're in "initial state dump" mode.
 
 ```typescript
 stream.on('data', (response) => {
   if (response.update) {
+    // Parse the notification, extract updates
     processNotification(response.update);
   }
   if (response.syncResponse) {
-    // Initial state dump is complete
-    // Switch UI from "Loading..." to "🟢 Streaming"
-    store.setStreamingStatus('connected');
+    // Initial sync done — switch UI to "live" indicator
+    setStreamingState(true);
   }
 });
 ```
 
 ---
 
-## Building the Pipeline: gNMI → Node.js → SSE → React
+## Building the Pipeline: gNMI → SSE → Browser
 
-gRPC is a server-side protocol — browsers don't speak it natively. The dashboard lives in a browser. So we need a bridge.
+gNMI is a server-side gRPC connection. Browsers don't speak gRPC natively. So the pipeline needs a bridge, and Server-Sent Events (SSE) is the right tool for this leg of the journey.
 
-The architecture looks like this:
+The architecture:
 
 ```
-ToR A ──gRPC/HTTP2──▶ ┌─────────────────────┐ ──SSE/HTTP──▶ Browser
-ToR B ──gRPC/HTTP2──▶ │    Next.js Server    │               │
-                      │                      │               │
-                      │  SubscriptionManager │         EventSource
-                      │  (gNMI streams per   │               │
-                      │   device)            │          Zustand store
-                      │                      │               │
-                      │  RESTCONF client     │         React components
-                      │  (on-demand queries) │
-                      └─────────────────────┘
+ToR A (:8080) ──gRPC── Next.js Server ──SSE──► Browser (React)
+ToR B (:8080) ──gRPC──┘                        (Zustand store)
+                │
+                └── RESTCONF (:443) ──HTTPS── (on-demand only)
 ```
 
-**Why SSE instead of WebSocket?** Server-Sent Events is a browser API for one-way server→client streaming. It's simpler than WebSocket for our use case (we only need server-to-browser push — config changes go through regular REST API calls). SSE supports automatic reconnection out of the box, works through proxies, and has a clean native `EventSource` API in every modern browser.
+**On the server side:** A singleton `SubscriptionManager` opens gNMI streams to both switches at startup. When Notifications arrive, it parses them into typed events (`bgp-update`, `cpu-update`, `interface-update`, etc.) and forwards them to any connected SSE clients.
 
-### The SubscriptionManager
-
-The `SubscriptionManager` is a singleton that owns all gNMI connections. It starts on server startup, opens gNMI Subscribe streams to each device, and keeps them alive with reconnection logic.
+**The SSE endpoint** (`/api/stream`) is a long-lived HTTP response that keeps the connection open and writes events as they arrive:
 
 ```typescript
-class SubscriptionManager {
-  private clients = new Map<string, GnmiClient>();
-  private streams = new Map<string, grpc.ClientDuplexStream<...>>();
-  private sseClients = new Set<SSEClient>();
-
-  async startDevice(device: DeviceConfig) {
-    const client = new GnmiClient(device);
-    const stream = client.subscribe(STREAM_SUBSCRIPTIONS);
-
-    stream.on('data', (response) => {
-      if (response.syncResponse) {
-        this.broadcast({ type: 'sync', deviceId: device.id });
-        return;
-      }
-      if (response.update) {
-        const events = parseNotification(device.id, response.update);
-        events.forEach(event => this.broadcast(event));
-      }
-    });
-
-    stream.on('error', (err) => {
-      // Reconnect with exponential backoff
-      this.scheduleReconnect(device);
-    });
-  }
-
-  broadcast(event: TelemetryEvent) {
-    const data = JSON.stringify(event);
-    this.sseClients.forEach(client => client.send(data));
-  }
-}
-```
-
-### The SSE Endpoint
-
-Next.js App Router makes SSE straightforward:
-
-```typescript
-// app/api/stream/route.ts
-export async function GET(request: Request) {
-  const encoder = new TextEncoder();
+// Simplified SSE endpoint
+export async function GET() {
   const stream = new ReadableStream({
     start(controller) {
-      const client = {
-        send: (data: string) => {
-          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-        }
-      };
-      subscriptionManager.addSseClient(client);
-      request.signal.addEventListener('abort', () => {
-        subscriptionManager.removeSseClient(client);
+      subscriptionManager.on('event', (event) => {
+        const data = `data: ${JSON.stringify(event)}\n\n`;
+        controller.enqueue(new TextEncoder().encode(data));
       });
     }
   });
@@ -413,110 +354,111 @@ export async function GET(request: Request) {
 }
 ```
 
-### The Zustand Store
+**In the browser:** The `EventSource` API connects to `/api/stream` and gets automatic reconnection for free. Events feed into a Zustand store, which triggers React re-renders for the affected components only.
 
-On the browser side, a Zustand store receives SSE events and maintains reactive state:
+Why SSE instead of WebSockets? Because we only need server→client pushes. Browsers don't need to send data to the server asynchronously — when a user clicks "refresh," that's a regular REST API call. SSE is simpler, works through more proxies and firewalls, and the native `EventSource` API handles reconnection without any library code.
 
-```typescript
-const useNetworkStore = create<NetworkState>((set) => ({
-  devices: {},
-  streamStatus: 'connecting',
+---
 
-  applyTelemetryEvent: (event: TelemetryEvent) => set((state) => {
-    switch (event.type) {
-      case 'bgp-update':
-        return mergeBgpUpdate(state, event);
-      case 'cpu-update':
-        return mergeCpuUpdate(state, event);
-      case 'interface-update':
-        return mergeInterfaceUpdate(state, event);
-      case 'sync':
-        return { ...state, streamStatus: 'streaming' };
-      default:
-        return state;
-    }
-  }),
-}));
+## RESTCONF as the Complement
 
-// In a component or layout:
-const eventSource = new EventSource('/api/stream');
-eventSource.onmessage = (e) => {
-  const event = JSON.parse(e.data);
-  useNetworkStore.getState().applyTelemetryEvent(event);
-};
+gNMI streaming is great for live monitoring, but it's not the right tool for *every* query. RESTCONF (HTTPS to port 443 on Dell SONiC) fills the gaps:
+
+- **Initial page load:** Fetch the complete current state without waiting for the first streaming update
+- **On-demand refresh:** When a user clicks a refresh button, a stateless RESTCONF GET is simpler than temporarily adjusting subscription modes
+- **Detail queries:** Some data is better fetched on-demand rather than streamed — hardware inventory, full route tables, specific neighbor details
+
+Think of gNMI as your always-on monitoring stream and RESTCONF as your reference library. They complement each other. The streaming protocol handles the reactive "tell me when something changes" use case; the stateless protocol handles the imperative "tell me about this specific thing right now" use case.
+
+---
+
+## The 40/60 Reality Check
+
+Here's the thing nobody tells you when you start with OpenConfig: it doesn't cover everything.
+
+In our experience, OpenConfig YANG paths cover roughly **40% of what a production data center fabric actually needs**. The paths we've talked about in this post — BGP state, interface counters, CPU, memory — those work great. OpenConfig is excellent for the fundamentals.
+
+The other **60%** requires vendor-native YANG models or just... not being available via gNMI at all. Specifically:
+
+- **EVPN/VXLAN state** — BGP EVPN neighbor state, VNI membership, VTEP mappings
+- **QoS and PFC** — Priority-based flow control counters (critical for RoCEv2/RDMA workloads)
+- **MCLAG** — Multi-Chassis LAG status, keepalive state, consistency checker output
+- **SONiC-specific tables** — APP_DB and STATE_DB entries that expose internal state not modeled in OpenConfig
+
+For vendor-native paths, you use `origin: ''` (or omit origin) instead of `origin: 'openconfig'` in your path encoding, and navigate the vendor's YANG tree instead of the OpenConfig one. It's more work — you need to know the specific path structure — but it's still structured gNMI, still streaming, still not SSH.
+
+The takeaway: OpenConfig gives you a solid, vendor-neutral foundation. Plan for native YANG extensions if you need the full picture.
+
+---
+
+## The SSH Tunnel Saga (And Why It's Gone)
+
+One more thing worth sharing because it illustrates how these pieces fit together architecturally.
+
+Our initial design for reaching the gNMI endpoints was... convoluted. The ToR switches' loopback addresses weren't reachable from the corporate network directly. BGP was up between the ToRs and the upstream spine switches, but the spines weren't advertising the point-to-point link networks. So you could reach the spines, but not the ToRs behind them.
+
+The workaround was SSH tunnels — connect to a spine, tunnel through to the ToR. Fragile, slow, prone to authentication issues, and entirely defeating the purpose of building a clean programmatic monitoring system.
+
+The actual fix was straightforward once we understood the problem: the spine BGP configuration needed `network` statements for the P2P link subnets under the correct address family. Once those routes were advertised, the ToR loopbacks were reachable directly from the corporate VPN — and the entire SSH tunnel layer was deleted. Three files removed, one config change on the spines, everything works.
+
+The lesson: sometimes the obstacle to your elegant monitoring architecture is an upstream BGP config issue that has nothing to do with monitoring.
+
+---
+
+## What This Looks Like in Practice
+
+The end result is a Next.js dashboard that maintains persistent gNMI streams to both Dell S5248F-ON switches. Here's what it can show, live, without a single SSH session:
+
+- **BGP neighbor state** for all sessions — peer AS, session state, prefix counts — updating the instant anything changes
+- **Interface operational status** across all ports — link state, speed — instant notification on flaps
+- **Interface traffic counters** — in/out octets and packets, sampled every 10 seconds
+- **CPU utilization** per switch, sampled every 15 seconds
+- **Memory usage** per switch, sampled every 15 seconds
+- **Network topology** with BGP state coloring — green for established, red for down
+
+The whole thing runs on one TCP connection per switch. Admin SSH sessions are available whenever you need them. And when a BGP session drops at 2 AM, you find out immediately — not on the next polling cycle.
+
+That's the promise of purpose-built telemetry protocols. They exist so you don't have to abuse SSH.
+
+---
+
+## Getting Started
+
+If you have a Dell Enterprise SONiC switch and want to verify gNMI is available:
+
+```bash
+# From the switch CLI
+show runningconfiguration all | grep -i telemetry
+
+# Or check the process directly
+ps aux | grep telemetry
+
+# From your workstation — gnmic is a great CLI client
+gnmic -a <switch-ip>:8080 --insecure -u admin -p <password> capabilities
 ```
 
-React components just subscribe to the Zustand slices they need. When a BGP neighbor state changes, only the BGP table component re-renders. When CPU updates arrive every 15 seconds, only the CPU gauge updates. No full-page refreshes, no polling loops.
+The `gnmic` CLI tool (from Nokia, open-source) is excellent for exploration before you write any code. Use `gnmic get` to explore OpenConfig paths, `gnmic subscribe` to see streaming updates, and `gnmic capabilities` to see what YANG models the device supports.
 
----
-
-## RESTCONF: The Complement, Not the Competition
-
-gNMI Subscribe is great for live monitoring, but it's not always the right tool. RESTCONF (HTTPS to port 443 on Dell SONiC) stays in the stack as a complement for two scenarios:
-
-**On-demand detail queries.** When a user clicks "expand" to see the full BGP route table for a specific neighbor, we fire a RESTCONF GET rather than maintaining a persistent stream of route data we might never look at. Stateless, immediate, complete.
-
-**Fallback and initial load.** If the gNMI stream is reconnecting, RESTCONF can fill in current state so the dashboard isn't staring at stale data. On page load, before the SSE connection is established, RESTCONF provides the initial snapshot.
-
-```typescript
-// RESTCONF for on-demand BGP route detail
-async function getBgpRoutesForNeighbor(deviceIp: string, neighbor: string) {
-  const url = `https://${deviceIp}/restconf/data/` +
-    `network-instances/network-instance=default/` +
-    `protocols/protocol=BGP,bgp/bgp/neighbors/neighbor=${neighbor}/` +
-    `adj-rib-in-post`;
-
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Basic ${btoa('admin:password')}`,
-      'Accept': 'application/yang-data+json',
-    }
-  });
-
-  return response.json();
-}
-```
-
-The paths are the same OpenConfig YANG paths — RESTCONF just uses them as URL segments instead of gNMI path elements. If you know one, you mostly know the other.
-
----
-
-## What the Dashboard Actually Looks Like
-
-The end product is a Next.js application with two device cards — one per ToR switch — each showing:
-
-- **CPU utilization** — Live bar from gNMI SAMPLE (15s interval)
-- **Memory used/total** — Live bar from gNMI SAMPLE (15s interval)
-- **BGP neighbors** — Table with session state, peer AS, prefixes. ON_CHANGE means flaps appear instantly.
-- **Interface summary** — Active interfaces with counters. ON_CHANGE for status, SAMPLE for traffic.
-- **Stream status** — Text+color indicator: "🟢 Streaming", "🔵 Connecting...", "🔴 Error". Always a word, never just a color.
-
-The network topology sits above both cards — a visual graph of spine and ToR nodes, with edges colored by BGP session state. When a BGP link goes down, the edge turns red within milliseconds. No polling. No waiting.
-
----
-
-## Lessons Learned
-
-**gNMI is purpose-built for monitoring. SSH is not.** The session limit problem is a symptom of using the wrong tool. gNMI exists precisely to solve this — separate process, separate port, no impact on interactive access.
-
-**The nanoseconds thing will get you.** Write it on a sticky note. Put it somewhere you'll see it. `sampleInterval` is in nanoseconds. 10 seconds = `10_000_000_000`.
-
-**Combine prefix + path.** Always. Every time. It's easy to get this wrong and silently misclassify events.
-
-**Don't show "streaming" until syncResponse.** The initial state dump is loading, not live. Respect the distinction.
-
-**OpenConfig is 40% of the story.** It's the right 40% — the portable, cross-vendor core. But if you want PFC counters, EVPN VTEP state, or buffer utilization, you're going to need native YANG models alongside it.
-
-**RESTCONF and gNMI are teammates.** Subscribe for live monitoring, RESTCONF for on-demand detail. Each has its place.
+Once you know the paths work, wiring them into Node.js with `@grpc/grpc-js` is a few hundred lines of TypeScript — and then you have real-time switch telemetry in your browser without touching SSH session limits.
 
 ---
 
 ## What's Next
 
-The dashboard is in good shape for read-only monitoring. The next evolution is state validation — defining "intended state" as a document and querying gNMI Get to check whether the network matches it. After that, gNMI Set for config push: structured, validated, idempotent, without an SSH session in sight.
+The gNMI foundation is solid. What comes next:
 
-The SSH lockout that started this whole journey turned out to be a gift. It pushed us toward a better architecture than we'd have built otherwise. Sometimes the right path starts with a door that's already closed.
+- **Vendor-native YANG paths** for EVPN and QoS state — the other 60%
+- **Historical metrics** — storing the time-series data in SQLite for trend analysis
+- **gNMI Set** — pushing config changes via the same protocol we use for monitoring
+- **LLDP neighbor discovery** — auto-building the topology instead of hardcoding it
+
+There's also a deeper post waiting about the gap between OpenConfig's promise and production reality — where the standard models end and vendor extensions begin. That one has opinions.
+
+For now: if you have SONiC switches, check port 8080. Something interesting is already running there.
 
 ---
 
-*Post 4 will cover the multi-vendor abstraction layer — building a `DeviceProvider` interface that speaks gNMI equally to SONiC and Cisco NX-OS, so the dashboard doesn't have to know which switch it's talking to.*
+*Posts in this series:*
+- *[Part 1: Hey Copilot, Can You SSH Into a Switch?](/posts/hey-copilot-can-you-ssh-into-a-switch/)*
+- *[Part 2: Here's a /26 — Figure Out the Address Plan](/posts/heres-a-25-figure-out-the-address-plan/)*
+- *Part 3: Stop SSHing Into My Switches (you're here)*
