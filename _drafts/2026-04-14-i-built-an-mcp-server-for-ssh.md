@@ -7,8 +7,8 @@ tags: [ssh, mcp, copilot, ai, automation, networking, open-source]
 author: ebmarquez
 description: "I was checking switch cabling and thought — why am I doing this manually? I asked GitHub Copilot to do it. That question led down a rabbit hole of credential backends, hanging regex loops, and an AI that admitted it was being dumb."
 image:
-  path: https://images.unsplash.com/photo-1562408590-e32931084e23?w=1200&q=80
-  alt: "Network switch rack with structured cabling"
+  path: /assets/img/posts/2026-04-14/ssh-mcp-hero.png
+  alt: "Multiple SSH terminal sessions open to network devices — the problem that led to ai-ssh-toolkit"
 ---
 
 *This one started the way most good tools start: I was doing something repetitive and got impatient.*
