@@ -75,6 +75,18 @@ Checks all posts for timestamp issues before committing:
 
 **Automatic Validation:** The GitHub Actions workflow automatically validates post dates on every push.
 
+### Sync Upstream Theme Updates
+
+This fork stays up to date with design and security fixes from
+[cotes2020/jekyll-theme-chirpy](https://github.com/cotes2020/jekyll-theme-chirpy)
+without overwriting personal settings, content, or branding. See
+[`docs/UPSTREAM_SYNC.md`](docs/UPSTREAM_SYNC.md) for how it works, or
+run it manually:
+
+```bash
+tools/sync-upstream.sh
+```
+
 ## Contributing
 
 Contributions (_pull requests_, _issues_, and _discussions_) are what make the open-source community such an amazing place
