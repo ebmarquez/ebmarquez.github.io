@@ -1,0 +1,39 @@
+# Protected paths for the upstream sync system (tools/sync-upstream.sh)
+#
+# Each line is a path (file or directory) relative to the repo root that
+# contains YOUR personal customizations. During an upstream sync, these
+# paths are always restored to your version after merging in changes from
+# cotes2020/jekyll-theme-chirpy, so the design/security updates never
+# overwrite your environment settings, content, or branding.
+#
+# - Blank lines and lines starting with # are ignored.
+# - Add a new line whenever you create a file/folder you don't want the
+#   upstream theme sync to touch.
+
+# Site configuration & personal settings
+_config.yml
+_data
+.well-known
+google69208d64fa3cb4e0.html
+favicon.ico
+
+# Content
+_posts
+_drafts
+
+# Docs / project metadata unique to this fork
+README.md
+AGENT.md
+docs/POST_DATE_VALIDATION.md
+.github/copilot
+
+# Repo automation specific to this fork
+tools/validate-posts.ps1
+.github/workflows/lint-js.yml
+.github/workflows/lint-scss.yml
+.github/workflows/pr-filter.yml
+.github/workflows/pages-deploy.yml
+.github/sync-upstream
+
+# CI/identity files
+CNAME

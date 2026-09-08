@@ -1,0 +1,75 @@
+name: "Sync Upstream Theme"
+
+# Keeps this fork in sync with design and security updates from
+# cotes2020/jekyll-theme-chirpy while preserving all files listed in
+# .github/sync-upstream/protected-paths.txt (site config, posts, data,
+# branding, and this fork's own CI/docs). See docs/UPSTREAM_SYNC.md.
+
+on:
+  schedule:
+    # Weekly, Monday 09:00 UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Run upstream sync script
+        id: sync
+        run: |
+          BASE_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+          BRANCH="sync/upstream-$(date +%Y%m%d)"
+          echo "base=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          bash tools/sync-upstream.sh "$BRANCH"
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet "${{ steps.sync.outputs.base }}"..."${{ steps.sync.outputs.branch }}"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push sync branch
+        if: steps.diff.outputs.changed == 'true'
+        run: git push -u origin "${{ steps.sync.outputs.branch }}" --force
+
+      - name: Open pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: ${{ steps.sync.outputs.branch }}
+          base: ${{ steps.sync.outputs.base }}
+          title: "chore: sync design & security updates from upstream Chirpy theme"
+          labels: upstream-sync
+          body: |
+            Automated sync from [cotes2020/jekyll-theme-chirpy](https://github.com/cotes2020/jekyll-theme-chirpy).
+
+            All paths listed in `.github/sync-upstream/protected-paths.txt`
+            (site config, posts, data, branding, and this fork's own
+            CI/docs) were restored after the merge, so your custom
+            settings are **not** overwritten.
+
+            Please review the diff before merging, paying attention to
+            any files outside the protected paths list, then run the
+            site locally to confirm the build still works.
+
+            See `docs/UPSTREAM_SYNC.md` for details on this process.
+          commit-message: "chore: sync upstream theme updates"
